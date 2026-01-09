@@ -22,3 +22,8 @@ bash.exe.stackdump
 cache/
 out/
 bash.exe.stackdump
+
+.env
+cache/
+out/
+bash.exe.stackdump
