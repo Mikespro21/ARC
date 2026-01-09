@@ -27,3 +27,6 @@ bash.exe.stackdump
 cache/
 out/
 bash.exe.stackdump
+
+# Streamlit secrets
+.streamlit/secrets.toml
