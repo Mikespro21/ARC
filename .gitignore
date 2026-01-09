@@ -30,3 +30,8 @@ bash.exe.stackdump
 
 # Streamlit secrets
 .streamlit/secrets.toml
+
+# Secrets
+.env
+*.env
+.streamlit/secrets.toml
