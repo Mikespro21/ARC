@@ -1,37 +1,27 @@
-# Compiler files
-cache/
-out/
-
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
-
-# Docs
-docs/
-
-# Dotenv file
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+.venv/
+venv/
 .env
 
-.env
-cache/
-out/
-bash.exe.stackdump
-
-.env
-cache/
-out/
-bash.exe.stackdump
-
-.env
-cache/
-out/
-bash.exe.stackdump
-
-# Streamlit secrets
+# Streamlit
 .streamlit/secrets.toml
+.streamlit/*.toml.bak
 
-# Secrets
-.env
-*.env
+# Local app data (profiles, cached data)
+.crowdlike_data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Crowdlike local stuff
 .streamlit/secrets.toml
+.crowdlike_data/
+crowdlike.db
+__pycache__/
+*.pyc
