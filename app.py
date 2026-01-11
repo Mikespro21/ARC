@@ -5,6 +5,7 @@ from crowdlike.ui import apply_ui, hero, nav, soft_divider, xp_bar, button_style
 from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user, logout
 from crowdlike.game import xp_progress, compute_streak, record_visit, ensure_user_schema
+from crowdlike.agents import get_active_agent, get_agents, agent_label
 from crowdlike.version import VERSION
 
 st.set_page_config(page_title="Crowdlike", page_icon="🫧", layout="wide")
@@ -22,8 +23,12 @@ _demo = bool_setting("DEMO_MODE", True)
 with st.sidebar:
     st.markdown("### Quick menu")
     st.page_link("app.py", label="Home")
-    st.page_link("pages/coach.py", label="Agent")
+    st.page_link("pages/agents.py", label="Agents")
+    st.page_link("pages/compare.py", label="Compare")
+    st.page_link("pages/chat.py", label="Chat")
     st.page_link("pages/market.py", label="Market")
+    st.page_link("pages/safety.py", label="Safety")
+    st.page_link("pages/pricing.py", label="Pricing")
     st.page_link("pages/quests.py", label="Quests")
     st.page_link("pages/shop.py", label="Shop")
     st.page_link("pages/social.py", label="Social")
@@ -46,10 +51,13 @@ wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else
 wallet_addr = (wallet.get("address") or "").strip()
 wallet_short = (wallet_addr[:6] + "…" + wallet_addr[-4:]) if wallet_addr else "Not set"
 
+active_agent = get_active_agent(user)
+agents = get_agents(user)
+
 hero(
     f"{user.get('avatar','🧊')}  Welcome, {user.get('username','Member')}",
-    f"Crowdlike v{VERSION} · agentic commerce + crowd feedback · Arc USDC testnet demo.",
-    badge=f"Level {lvl} · Streak {streak}d",
+    f"Crowdlike v{VERSION} · multi-agent investing + agentic payments · Arc USDC testnet demo.",
+    badge=f"{agent_label(active_agent)} · Level {lvl} · Streak {streak}d",
 )
 
 status_bar(wallet_set=bool(wallet_addr), demo_mode=_demo, crowd_score=crowd_score)
@@ -57,9 +65,11 @@ status_bar(wallet_set=bool(wallet_addr), demo_mode=_demo, crowd_score=crowd_scor
 # --- Snapshot ---
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    metric_card("Cash", f"${float(user.get('cash_usdc',0.0)):.2f}", "Testnet USDC", accent="purple")
+    port = active_agent.get("portfolio") if isinstance(active_agent.get("portfolio"), dict) else {}
+    cash = float(port.get("cash_usdc", 0.0) or 0.0)
+    metric_card("Active cash", f"${cash:.2f}", "Agent portfolio", accent="purple")
 with c2:
-    metric_card("Coins", f"{int(user.get('coins',0)):,}", "Earned by quests", accent="blue")
+    metric_card("Agents", f"{len(agents)}", "Separate portfolios", accent="blue")
 with c3:
     metric_card("Crowd Score", f"{crowd_score:.0f}", "Gently boosts limits", accent="blue")
 with c4:
@@ -111,13 +121,13 @@ with cta1:
             st.session_state["checkout_step"] = 1
             st.switch_page("pages/market.py")
 with cta2:
-    button_style("home_cta_quests", "blue")
-    if st.button("Earn XP with Quests", key="home_cta_quests", use_container_width=True):
-        st.switch_page("pages/quests.py")
+    button_style("home_cta_agents", "blue")
+    if st.button("Manage agents", key="home_cta_agents", use_container_width=True):
+        st.switch_page("pages/agents.py")
 with cta3:
-    button_style("home_cta_agent", "slate")
-    if st.button("Open Agent Coach", key="home_cta_agent", use_container_width=True):
-        st.switch_page("pages/coach.py")
+    button_style("home_cta_compare", "slate")
+    if st.button("Compare performance", key="home_cta_compare", use_container_width=True):
+        st.switch_page("pages/compare.py")
 
 soft_divider()
 

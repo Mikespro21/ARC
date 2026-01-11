@@ -7,6 +7,7 @@ from crowdlike.settings import bool_setting
 from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import record_visit, ensure_user_schema, grant_xp, add_notification, log_activity
+from crowdlike.agents import get_active_agent, agent_label
 from crowdlike.market_data import get_markets, get_market_chart_7d
 from crowdlike.policy import PaymentPolicy
 from crowdlike.arc import (
@@ -29,8 +30,10 @@ maybe_run_tour(user, current_page="market")
 ensure_user_schema(user)
 record_visit(user, "market")
 
+active_agent = get_active_agent(user)
+
 nav(active="Market")
-hero("📈 Market", "Live prices, practice trading, and a judge-friendly USDC testnet checkout flow.", badge="Market")
+hero("📈 Market", "Live prices, practice trading, and a judge-friendly USDC testnet checkout flow.", badge=agent_label(active_agent))
 
 _demo = bool_setting("DEMO_MODE", True)
 _wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
@@ -117,7 +120,11 @@ with tab_practice:
 
 
 
-    portfolio = user.setdefault("portfolio", {"cash_usdc": 1000.0, "positions": {}, "trades": []})
+    # Each agent has its own practice portfolio (v0.30+).
+    portfolio = active_agent.setdefault("portfolio", {"cash_usdc": 1000.0, "positions": {}, "trades": []})
+    if not isinstance(portfolio, dict):
+        portfolio = {"cash_usdc": 1000.0, "positions": {}, "trades": []}
+        active_agent["portfolio"] = portfolio
     portfolio.setdefault("cash_usdc", 1000.0)
     portfolio.setdefault("positions", {})
     portfolio.setdefault("trades", [])
@@ -272,8 +279,14 @@ with tab_checkout:
                 unsafe_allow_html=True,
             )
 
-        # Policy summary (crowd-influenced)
-        base_policy = PaymentPolicy.from_user(user)
+        # Policy summary (crowd-influenced). Allow per-agent overrides.
+        _ctx = dict(user)
+        _ap = active_agent.get("policy") if isinstance(active_agent.get("policy"), dict) else {}
+        if isinstance(user.get("policy"), dict):
+            _ctx["policy"] = {**(user.get("policy") or {}), **(_ap or {})}
+        else:
+            _ctx["policy"] = _ap or {}
+        base_policy = PaymentPolicy.from_user(_ctx)
         eff = base_policy.effective(user)
         crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
         score = float(crowd.get("score", 50.0) or 50.0)
@@ -349,13 +362,20 @@ with tab_checkout:
                                 # Commit policy counters only after verified
                                 base_policy.authorize_payment(user, offer["price"], commit=True)
 
-                                # Idempotent save by tx_hash
+                                # Idempotent save by tx_hash (agent + global history)
+                                agent_purchases = active_agent.get("purchases") if isinstance(active_agent.get("purchases"), list) else []
                                 purchases = user.get("purchases") if isinstance(user.get("purchases"), list) else []
-                                existing_i = None
-                                for i, p in enumerate(purchases):
-                                    if (p or {}).get("tx_hash") == txh:
-                                        existing_i = i
-                                        break
+
+                                def _dedupe(items):
+                                    existing_i = None
+                                    for i, p in enumerate(items):
+                                        if (p or {}).get("tx_hash") == txh:
+                                            existing_i = i
+                                            break
+                                    return existing_i
+
+                                existing_i_agent = _dedupe(agent_purchases)
+                                existing_i_user = _dedupe(purchases)
                                 rec = {
                                     "ts": _dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
                                     "item_id": offer["id"],
@@ -365,9 +385,13 @@ with tab_checkout:
                                     "tx_hash": txh,
                                     "status": "verified",
                                 }
-                                if existing_i is not None:
-                                    purchases.pop(existing_i)
+                                if existing_i_agent is not None:
+                                    agent_purchases.pop(existing_i_agent)
+                                if existing_i_user is not None:
+                                    purchases.pop(existing_i_user)
+                                agent_purchases.insert(0, rec)
                                 purchases.insert(0, rec)
+                                active_agent["purchases"] = agent_purchases[:50]
                                 user["purchases"] = purchases[:50]
 
                                 grant_xp(user, 25, "Checkout", f"Verified {offer['name']}")

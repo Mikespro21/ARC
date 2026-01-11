@@ -474,14 +474,20 @@ def button_style(key: str, variant: str) -> None:
 
 
 def nav(active: str = "Home") -> None:
-    """Top nav split into 2 rows to keep it readable."""
+    """Top nav split into small rows to keep it readable."""
     row1 = [
         ("Home", "app.py", "nav_home"),
-        ("Agent", "pages/coach.py", "nav_agent"),
-        ("Market", "pages/market.py", "nav_market"),
-        ("Profile", "pages/profile.py", "nav_profile"),
+        ("Agents", "pages/agents.py", "nav_agents"),
+        ("Compare", "pages/compare.py", "nav_compare"),
+        ("Chat", "pages/chat.py", "nav_chat"),
     ]
     row2 = [
+        ("Market", "pages/market.py", "nav_market"),
+        ("Safety", "pages/safety.py", "nav_safety"),
+        ("Pricing", "pages/pricing.py", "nav_pricing"),
+        ("Profile", "pages/profile.py", "nav_profile"),
+    ]
+    row3 = [
         ("Quests", "pages/quests.py", "nav_quests"),
         ("Shop", "pages/shop.py", "nav_shop"),
         ("Social", "pages/social.py", "nav_social"),
@@ -497,6 +503,13 @@ def nav(active: str = "Home") -> None:
     cols2 = st.columns(len(row2))
     for i, (label, path, k) in enumerate(row2):
         with cols2[i]:
+            button_style(k, "active" if label == active else "white")
+            if st.button(label, key=k, use_container_width=True):
+                st.switch_page(path)
+
+    cols3 = st.columns(len(row3))
+    for i, (label, path, k) in enumerate(row3):
+        with cols3[i]:
             button_style(k, "active" if label == active else "white")
             if st.button(label, key=k, use_container_width=True):
                 st.switch_page(path)

@@ -69,6 +69,17 @@ def ensure_user_schema(user: Dict[str, Any]) -> Dict[str, Any]:
     user.setdefault("visits", {})  # page_id -> count
     user.setdefault("quests_claimed", {})  # date -> [quest_id]
 
+    # Multi-agent (v0.30+): separate portfolios + chat histories per agent.
+    # Keep legacy user['portfolio'] for backward compatibility, but prefer agents.
+    try:
+        from .agents import ensure_agents_schema, migrate_legacy_portfolio_to_agents
+
+        ensure_agents_schema(user)
+        migrate_legacy_portfolio_to_agents(user)
+    except Exception:
+        # If anything goes wrong, don't block app launch.
+        pass
+
     return user
 
 

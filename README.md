@@ -1,13 +1,14 @@
-# Crowdlike v0.21 (Arc / USDC testnet demo)
+# Crowdlike v0.30 (Multi-agent vision demo)
 
 
-## New in 0.21
+## New in 0.30
 
-- UI/UX polish: 2-row nav, status strip, better cards, steppers, callouts, and demo-friendly quickstart.
-- Fixed startup crash when no `secrets.toml` is present.
-- Added missing pages: **Shop**, **Quests**, **Social** (Home buttons now work).
-- Rebuilt **Testnet checkout** flow (Configure → Pay → Verify) and fixed the `treasury` NameError/indent bug.
-- Added **Crowd Score** that gently boosts payment limits (±20%) while staying within safety rails.
+- Big product shift: **multiple agents**, each with their own portfolio and chat history.
+- New pages: **Agents**, **Compare**, **Chat**, **Safety**, **Pricing**.
+- Comparison dashboard ranks agents by **profit** and **% return** across daily/weekly/monthly/yearly.
+- Safety UX: **panic sell**, **fraud alert**, and **auto drawdown exit** (demo converts holdings to “cash”).
+- Pricing UX: pay-per-day estimator with exponential scaling by agents/risk/autonomy.
+- Market + Checkout now run under the **active agent** (purchases are still mirrored into user history for convenience).
 
 Crowdlike is a Streamlit demo exploring **agentic commerce with safety rails** on **Arc (EVM L1)** using **USDC testnet**.
 It focuses on a clear “money moment” for hackathon judging:
