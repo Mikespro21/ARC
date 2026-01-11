@@ -1,6 +1,7 @@
 import streamlit as st
 
-from crowdlike.ui import apply_ui, hero, nav, soft_divider
+from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, callout
+from crowdlike.settings import bool_setting
 from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, grant_xp, add_notification, log_activity, compute_streak, xp_progress
@@ -14,8 +15,15 @@ maybe_run_tour(user, current_page="coach")
 ensure_user_schema(user)
 record_visit(user, "coach")
 
-nav(active="Coach")
-hero("🤖 Coach", "Your friendly concierge for quests, market moves, and next steps.", badge="AI Demo")
+nav(active="Agent")
+hero("🤖 Agent Coach", "A friendly concierge for quests, market moves, and safe testnet checkout.", badge="Agent")
+
+# Reduce demo confusion with a tiny status strip
+_demo = bool_setting("DEMO_MODE", True)
+_wallet_set = bool(((user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}).get("address"))
+_crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
+status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
+
 
 # Simple chat state
 if "coach_messages" not in st.session_state:

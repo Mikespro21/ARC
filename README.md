@@ -1,7 +1,9 @@
-# Crowdlike v0.2 (Arc / USDC testnet demo)
+# Crowdlike v0.21 (Arc / USDC testnet demo)
 
 
-## New in 0.2
+## New in 0.21
+
+- UI/UX polish: 2-row nav, status strip, better cards, steppers, callouts, and demo-friendly quickstart.
 - Fixed startup crash when no `secrets.toml` is present.
 - Added missing pages: **Shop**, **Quests**, **Social** (Home buttons now work).
 - Rebuilt **Testnet checkout** flow (Configure → Pay → Verify) and fixed the `treasury` NameError/indent bug.

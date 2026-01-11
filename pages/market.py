@@ -2,7 +2,8 @@ import streamlit as st
 import datetime as _dt
 
 
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, link_button
+from crowdlike.ui import apply_ui, hero, nav, soft_divider, link_button, status_bar, stepper, copy_to_clipboard, callout
+from crowdlike.settings import bool_setting
 from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import record_visit, ensure_user_schema, grant_xp, add_notification, log_activity
@@ -29,7 +30,14 @@ ensure_user_schema(user)
 record_visit(user, "market")
 
 nav(active="Market")
-hero("📈 Market", "Live prices + easy buy/sell (practice) + testnet checkout.", badge="Market")
+hero("📈 Market", "Live prices, practice trading, and a judge-friendly USDC testnet checkout flow.", badge="Market")
+
+_demo = bool_setting("DEMO_MODE", True)
+_wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
+_wallet_set = bool((_wallet.get("address") or "").strip())
+_crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
+status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
+
 
 wallet = user.setdefault("wallet", {})
 rpc_url = wallet.get("rpc_url", DEFAULT_RPC_URL)
@@ -39,7 +47,7 @@ usdc_decimals = int(wallet.get("usdc_decimals", 6))
 
 WATCHLIST = ["bitcoin", "ethereum", "solana", "avalanche-2", "chainlink", "polygon-ecosystem-token"]
 
-tab_live, tab_practice, tab_checkout = st.tabs(["Live prices", "Practice buy/sell", "Testnet checkout"])
+tab_live, tab_practice, tab_checkout = st.tabs(["Live prices", "Practice", "Testnet checkout"])
 
 with tab_live:
     st.subheader("Live prices (CoinGecko)")
@@ -200,6 +208,7 @@ with tab_practice:
 
 with tab_checkout:
     st.subheader("Testnet checkout (USDC on Arc testnet)")
+    callout("info", "On-chain checkout (safe demo)", "You generate a command, run it locally, then paste the tx hash as proof. Private keys never enter the app.")
     st.markdown(
         '<div class="card card-strong">'
         '<b>This is the on-chain part.</b> You pay using testnet USDC and paste the “receipt ID” (tx hash). '
@@ -221,10 +230,11 @@ with tab_checkout:
         def _fmt(o: dict) -> str:
             return f'{o["name"]} — ${o["price"]} USDC'
 
-        # Stepper
-        step_labels = {1: "1) Configure", 2: "2) Pay", 3: "3) Verify"}
+        # Stepper (visual)
+        stepper(int(st.session_state.get('checkout_step', 1) or 1), ['Configure', 'Pay', 'Verify'])
+        step_labels = {1: "Configure", 2: "Pay", 3: "Verify"}
         step = st.radio(
-            "Checkout steps",
+            "Checkout step",
             options=[1, 2, 3],
             format_func=lambda x: step_labels.get(x, str(x)),
             horizontal=True,
@@ -305,6 +315,7 @@ with tab_checkout:
                     )
                     st.markdown('<div class="card"><div style="font-weight:760">Run this locally</div></div>', unsafe_allow_html=True)
                     st.code(cmd, language="bash")
+                    copy_to_clipboard(cmd, key="mkt_cast_cmd", label="Copy command")
                     st.caption("Do **not** paste private keys into the app. Use an env var: $PRIVATE_KEY.")
                     if st.button("I’ve paid — go to Verify →", type="primary"):
                         st.session_state["checkout_step"] = 3
