@@ -147,15 +147,27 @@ def apply_ui() -> None:
     st.markdown(css, unsafe_allow_html=True)
 
 def hero(title: str, subtitle: str = "", badge: str | None = None) -> None:
-    """Top hero banner used across pages."""
     badge_html = ""
     if badge:
-        badge_html = f'<div class="hero-badge">{badge}</div>'
+        badge_html = f'''
+        <div style="
+            display:inline-flex;
+            align-items:center;
+            gap:0.45rem;
+            padding: 0.24rem 0.56rem;
+            border-radius: 999px;
+            border: 1px solid rgba(167,139,250,0.26);
+            background: rgba(255,255,255,0.78);
+            color: rgba(15,23,42,0.90);
+            font-weight: 700;
+            font-size: 0.82rem;
+        ">{badge}</div>
+        '''
 
     st.markdown(
-        f"""
+        f'''
         <div class="hero">
-          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.8rem;">
             <div>
               <div class="hero-title">{title}</div>
               <div class="hero-subtitle">{subtitle}</div>
@@ -163,9 +175,10 @@ def hero(title: str, subtitle: str = "", badge: str | None = None) -> None:
             {badge_html}
           </div>
         </div>
-        """,
+        ''',
         unsafe_allow_html=True,
     )
+
 def soft_divider() -> None:
     st.markdown('<div class="divider-soft"></div>', unsafe_allow_html=True)
 
@@ -183,11 +196,12 @@ def xp_bar(pct: float, left: str, right: str) -> None:
         unsafe_allow_html=True,
     )
 
-def link_button(label: str, url: str) -> None:
+def link_button(label: str, url: str, icon: str = "↗") -> None:
     st.markdown(
-        f'<a class="btn-link" href="{url}" target="_blank" rel="noopener noreferrer">{label} ↗</a>',
-        unsafe_allow_html=True,
+        f'<a class="btn-link" href="{url}" target="_blank" rel="noopener">{label} <span style="opacity:0.75">{icon}</span></a>',
+        unsafe_allow_html=True
     )
+
 def button_style(key: str, variant: str) -> None:
     """
     Style ONE Streamlit button by key using #st-key-<key>.

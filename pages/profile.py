@@ -1,6 +1,7 @@
 import streamlit as st
 
 from crowdlike.ui import apply_ui, hero, nav, link_button, soft_divider
+from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user, logout
 from crowdlike.arc import (
     DEFAULT_RPC_URL,
@@ -15,6 +16,8 @@ st.set_page_config(page_title="Profile", page_icon="🧑‍🚀", layout="wide")
 apply_ui()
 
 user = require_login(app_name="Crowdlike")
+
+maybe_run_tour(user, current_page="profile")
 ensure_user_schema(user)
 record_visit(user, "profile")
 
@@ -119,3 +122,5 @@ if adv:
             st.rerun()
 
 save_current_user()
+
+# Guided tutorial (spotlight tour)

@@ -1,6 +1,7 @@
 import streamlit as st
 
 from crowdlike.ui import apply_ui, hero, nav, soft_divider
+from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, grant_xp, add_notification, log_activity, compute_streak, xp_progress
 
@@ -8,6 +9,8 @@ st.set_page_config(page_title="Coach", page_icon="🤖", layout="wide")
 apply_ui()
 
 user = require_login(app_name="Crowdlike")
+
+maybe_run_tour(user, current_page="coach")
 ensure_user_schema(user)
 record_visit(user, "coach")
 
@@ -129,3 +132,19 @@ if msgs and msgs[-1]["role"] == "user":
     save_current_user()
 
 save_current_user()
+
+# Guided tutorial (spotlight tour)
+# --- Guided actions (goal-focused) ---
+cols = st.columns(2)
+with cols[0]:
+    if st.button("Generate a plan", key="coach_plan", use_container_width=True):
+        tour_complete_step(2)
+        try:
+            st.session_state.coach_messages.append({"role":"user","content":"Create a clear plan for investing + workflow automation."})
+        except Exception:
+            pass
+with cols[1]:
+    if st.button("Go to Market", key="coach_to_market", use_container_width=True):
+        tour_complete_step(3)
+        tour_complete_step(3)
+        st.switch_page("pages/market.py")

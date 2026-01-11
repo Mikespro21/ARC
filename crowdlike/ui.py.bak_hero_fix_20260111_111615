@@ -146,26 +146,17 @@ def apply_ui() -> None:
     """
     st.markdown(css, unsafe_allow_html=True)
 
-def hero(title: str, subtitle: str = "", badge: str | None = None) -> None:
-    """Top hero banner used across pages."""
-    badge_html = ""
-    if badge:
-        badge_html = f'<div class="hero-badge">{badge}</div>'
-
+def hero(title: str, subtitle: str = "") -> None:
     st.markdown(
         f"""
         <div class="hero">
-          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
-            <div>
-              <div class="hero-title">{title}</div>
-              <div class="hero-subtitle">{subtitle}</div>
-            </div>
-            {badge_html}
-          </div>
+          <div class="hero-title">{title}</div>
+          <div class="hero-subtitle">{subtitle}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
 def soft_divider() -> None:
     st.markdown('<div class="divider-soft"></div>', unsafe_allow_html=True)
 
@@ -183,11 +174,12 @@ def xp_bar(pct: float, left: str, right: str) -> None:
         unsafe_allow_html=True,
     )
 
-def link_button(label: str, url: str) -> None:
+def link_button(label: str, url: str, icon: str = "↗") -> None:
     st.markdown(
-        f'<a class="btn-link" href="{url}" target="_blank" rel="noopener noreferrer">{label} ↗</a>',
-        unsafe_allow_html=True,
+        f'<a class="btn-link" href="{url}" target="_blank" rel="noopener">{label} <span style="opacity:0.75">{icon}</span></a>',
+        unsafe_allow_html=True
     )
+
 def button_style(key: str, variant: str) -> None:
     """
     Style ONE Streamlit button by key using #st-key-<key>.

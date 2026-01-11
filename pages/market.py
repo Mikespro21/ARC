@@ -1,6 +1,7 @@
 import streamlit as st
 
 from crowdlike.ui import apply_ui, hero, nav, soft_divider, link_button
+from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import record_visit, ensure_user_schema, grant_xp, add_notification, log_activity
 from crowdlike.market_data import get_markets, get_market_chart_7d
@@ -19,6 +20,8 @@ st.set_page_config(page_title="Market", page_icon="📈", layout="wide")
 apply_ui()
 
 user = require_login(app_name="Crowdlike")
+
+maybe_run_tour(user, current_page="market")
 ensure_user_schema(user)
 record_visit(user, "market")
 
@@ -101,6 +104,8 @@ with tab_practice:
     )
     st.write("")
 
+
+
     portfolio = user.setdefault("portfolio", {"cash_usdc": 1000.0, "positions": {}, "trades": []})
     portfolio.setdefault("cash_usdc", 1000.0)
     portfolio.setdefault("positions", {})
@@ -118,6 +123,14 @@ with tab_practice:
         c1, c2, c3 = st.columns([1.2, 0.9, 0.9])
         with c1:
             coin = st.selectbox("Asset", [r.id for r in rows], format_func=lambda x: x, key="practice_coin")
+
+        # Tutorial auto-advance: when the user *changes* the asset during step 4
+        if st.session_state.get("tour_step") == 4:
+            base = st.session_state.get("_tour_step4_base")
+            if base is None:
+                st.session_state["_tour_step4_base"] = coin
+            elif coin != base:
+                tour_complete_step(4)
         with c2:
             side = st.selectbox("Side", ["BUY", "SELL"], key="practice_side")
         with c3:
@@ -304,3 +317,5 @@ with tab_checkout:
                         st.exception(e)
 
 save_current_user()
+
+# Guided tutorial (spotlight tour)
