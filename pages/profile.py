@@ -1,6 +1,8 @@
 import re
 import streamlit as st
 
+from crowdlike.settings import bool_setting
+
 from crowdlike.ui import apply_ui, hero, nav, link_button, soft_divider
 from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user, logout
@@ -14,7 +16,7 @@ from crowdlike.arc import (
 from crowdlike.game import record_visit, ensure_user_schema, grant_xp, add_notification
 
 
-DEMO_MODE = str(st.secrets.get("DEMO_MODE", "true")).lower() not in ("0", "false", "no")
+DEMO_MODE = bool_setting("DEMO_MODE", True)
 
 AVATARS = ["🧊","🦋","🧠","🛰️","🪙","🦊","🦄","🐉","🧿","🪐","🌊","⚡","🫧","🧑‍🚀","🤖","🦈","🐙","🦜"]
 

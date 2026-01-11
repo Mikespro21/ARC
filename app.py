@@ -4,6 +4,7 @@ from crowdlike.ui import apply_ui, hero, nav, soft_divider, xp_bar, button_style
 from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user, logout
 from crowdlike.game import xp_progress, compute_streak, record_visit, ensure_user_schema
+from crowdlike.version import VERSION
 
 st.set_page_config(page_title="Crowdlike", page_icon="🫧", layout="wide")
 apply_ui()
@@ -31,7 +32,7 @@ streak = compute_streak(user.get("active_days") or [])
 # Emojis on this page (excluding avatar): tabs = 🚀 🔥 🔔 (3) + badge 🔥 (1) = 4 total
 hero(
     f"{user.get('avatar','🧊')}  Welcome, {user.get('username','Member')}",
-    "Agentic commerce meets community — powered by USDC testnet on Arc.",
+    f"Crowdlike v{VERSION} · Agentic commerce meets community — powered by USDC testnet on Arc.",
     badge=f"Level {lvl} · 🔥 Streak {streak}d",
 )
 

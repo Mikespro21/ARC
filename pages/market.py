@@ -1,4 +1,6 @@
 import streamlit as st
+import datetime as _dt
+
 
 from crowdlike.ui import apply_ui, hero, nav, soft_divider, link_button
 from crowdlike.tour import maybe_run_tour, tour_complete_step
@@ -197,10 +199,10 @@ with tab_practice:
                     st.dataframe(portfolio["trades"][:25], use_container_width=True, hide_index=True)
 
 with tab_checkout:
-    st.subheader("Testnet checkout (real on-chain receipt)")
+    st.subheader("Testnet checkout (USDC on Arc testnet)")
     st.markdown(
         '<div class="card card-strong">'
-        '<b>This is the on-chain part.</b> You pay using testnet USDC and we save a “receipt ID” (tx hash). '
+        '<b>This is the on-chain part.</b> You pay using testnet USDC and paste the “receipt ID” (tx hash). '
         '<div style="color:var(--muted);margin-top:0.35rem">Private keys never enter the app — you run the command locally.</div>'
         '</div>',
         unsafe_allow_html=True,
@@ -211,134 +213,169 @@ with tab_checkout:
         st.warning("First: set your wallet address in **Profile**.")
         st.page_link("pages/profile.py", label="Go to Profile")
     else:
-        # Choose a checkout item
         offers = [
             {"id": "vip_pass", "name": "VIP Pass", "desc": "Unlock VIP shop drops + flex badge.", "price": "1.00"},
-            {"id": "api_credits", "name": "API Credits", "desc": "Pay-per-use credits (demo).", "price": "0.25"},
             {"id": "creator_tip", "name": "Creator Tip", "desc": "Tip the community treasury (demo).", "price": "0.10"},
         ]
-        names = [f"{o['name']} — ${o['price']} (testnet)" for o in offers]
-        idx = st.selectbox("What are you buying?", list(range(len(offers))), format_func=lambda i: names[i], key="checkout_offer")
-        offer = offers[int(idx)]
 
-        treasury = st.text_input(
-            "Treasury address (where payments go)",
-            value=wallet.get("treasury_address", ""),
-            placeholder="0x…",
-            key="checkout_treasury",
+        def _fmt(o: dict) -> str:
+            return f'{o["name"]} — ${o["price"]} USDC'
+
+        # Stepper
+        step_labels = {1: "1) Configure", 2: "2) Pay", 3: "3) Verify"}
+        step = st.radio(
+            "Checkout steps",
+            options=[1, 2, 3],
+            format_func=lambda x: step_labels.get(x, str(x)),
+            horizontal=True,
+            key="checkout_step",
+            label_visibility="collapsed",
         )
-        wallet["treasury_address"] = treasury.strip()
 
-        c1, c2 = st.columns([1, 1])
+        # Shared state
+        offer_id = st.selectbox(
+            "What are you buying?",
+            options=[o["id"] for o in offers],
+            format_func=lambda oid: _fmt(next(o for o in offers if o["id"] == oid)),
+            key="checkout_offer_id",
+        )
+        offer = next(o for o in offers if o["id"] == offer_id)
+
+        c1, c2 = st.columns([2, 1])
         with c1:
+            treasury = st.text_input(
+                "Treasury (recipient) address",
+                value=wallet.get("treasury_address", ""),
+                placeholder="0x...",
+                help="Where USDC will be sent on testnet.",
+                key="checkout_treasury",
+            )
+            wallet["treasury_address"] = treasury.strip()
+        with c2:
             st.markdown(
-                f'<div class="card"><h3>🧾 {offer["name"]}</h3>'
-                f'<div style="color:var(--muted)">{offer["desc"]}</div>'
+                '<div class="card">'
+                f'<div style="font-weight:780">Selected</div>'
+                f'<div style="margin-top:0.35rem">{offer["name"]}</div>'
+                f'<div style="color:var(--muted);font-size:0.9rem">{offer["desc"]}</div>'
                 f'<div style="margin-top:0.65rem;font-size:1.35rem;font-weight:900">${offer["price"]} USDC</div>'
                 '</div>',
                 unsafe_allow_html=True,
             )
-        with c2:
-            st.markdown(
-                '<div class="card"><h3>✅ Steps</h3>'
-                '<ol style="margin-left:1.2rem;color:var(--muted)">'
-                '<li>Copy the payment command</li>'
-                '<li>Run it in Git Bash / Terminal</li>'
-                '<li>Paste the receipt ID here</li>'
-                '</ol></div>',
-                unsafe_allow_html=True,
-            )
 
-st.write("")
-if st.button("Generate payment command", type="primary", key="checkout_gen_cmd"):
-    if not is_address(treasury.strip()):
-        st.error("Enter a valid treasury address.")
-    else:
-        policy = PaymentPolicy.from_user(user)
-        ok_policy, why = policy.authorize_payment(user, offer["price"], commit=False)
-        if not ok_policy:
-            st.error(why)
-        else:
-            cmd = cast_usdc_transfer_cmd(
-                to_address=treasury.strip(),
-                amount_usdc=offer["price"],
-                rpc_url=rpc_url,
-                usdc_erc20=usdc_erc20,
-                usdc_decimals=usdc_decimals,
-                private_key_env="$PRIVATE_KEY",
-            )
-            st.code(cmd, language="bash")
-            st.caption("Run this in your terminal. It will output a tx hash (receipt ID).")
+        # Policy summary (crowd-influenced)
+        base_policy = PaymentPolicy.from_user(user)
+        eff = base_policy.effective(user)
+        crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
+        score = float(crowd.get("score", 50.0) or 50.0)
+        st.markdown(
+            '<div class="card">'
+            '<div style="font-weight:760">Safety rails</div>'
+            f'<div style="color:var(--muted);margin-top:4px">Crowd Score: <b>{score:.0f}</b> (gently boosts limits)</div>'
+            f'<div style="margin-top:0.4rem">Max/tx: <b>${eff.max_per_tx_usdc:.2f}</b> · Daily cap: <b>${eff.daily_cap_usdc:.2f}</b> · Cooldown: <b>{eff.cooldown_s}s</b></div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
 
-receipt = st.text_input("Receipt ID (tx hash)", placeholder="0x + 64 hex", key="checkout_tx")
-if receipt:
-    if is_tx_hash(receipt.strip()):
-        link_button("View receipt on ArcScan", f"{explorer}/tx/{receipt.strip()}")
-    else:
-        st.warning("This doesn’t look like a valid tx hash yet.")
+        # Step 1: validate config
+        if step == 1:
+            ok_addr = is_address(treasury.strip())
+            if not ok_addr:
+                st.error("Enter a valid treasury address to continue.")
+            if st.button("Continue to Pay →", type="primary", disabled=not ok_addr):
+                st.session_state["checkout_step"] = 2
+                st.rerun()
 
-st.write("")
-if st.button("Verify receipt", type="primary", key="checkout_verify"):
-    if not receipt or not is_tx_hash(receipt.strip()):
-        st.error("Paste a valid receipt ID first.")
-    elif not is_address(treasury.strip()):
-        st.error("Treasury address is missing.")
-    else:
-        try:
-            rcpt = get_tx_receipt(rpc_url, receipt.strip())
-            if not rcpt:
-                st.info("Receipt not found yet. Try again in a moment.")
+        # Step 2: show payment command
+        if step == 2:
+            if not is_address(treasury.strip()):
+                st.error("Enter a valid treasury address (Step 1).")
             else:
-                status = (rcpt.get("status") or "").lower()
-                if status not in ("0x1", "1", 1):
-                    st.error("Transaction failed (receipt status not successful).")
-                    st.stop()
-
-                # Verify at least the offer price
-                ok, msg = verify_erc20_transfer(
-                    rcpt,
-                    token_address=usdc_erc20,
-                    to_address=treasury.strip(),
-                    min_amount_base_units=to_base_units(offer["price"], usdc_decimals),
-                )
-                if ok:
-                    add_notification(user, f"Payment verified: {offer['name']} ✔️", "success")
-                    grant_xp(user, 140, "Checkout", f"Bought {offer['name']}")
-                    log_activity(user, f"Paid ${offer['price']} for {offer['name']} (testnet)", icon="🧾")
-
-                    # Commit policy counters only after verification
-                    PaymentPolicy.from_user(user).authorize_payment(user, offer["price"], commit=True)
-
-                    # Save receipt idempotently (avoid duplicates on reruns)
-                    txh = receipt.strip()
-                    purchases = user.setdefault("purchases", [])
-                    existing_i = None
-                    for i, row in enumerate(purchases):
-                        if isinstance(row, dict) and str(row.get("tx_hash", "")).lower() == txh.lower():
-                            existing_i = i
-                            break
-                    rec = {
-                        "ts": __import__("datetime").datetime.utcnow().isoformat(timespec="seconds") + "Z",
-                        "item_id": offer["id"],
-                        "name": offer["name"],
-                        "price": offer["price"],
-                        "currency": "USDC(testnet)",
-                        "tx_hash": txh,
-                        "status": "verified",
-                    }
-                    if existing_i is not None:
-                        purchases.pop(existing_i)
-                    purchases.insert(0, rec)
-
-                    save_current_user()
-                    st.success("Verified ✅ (saved to your profile)")
+                ok_policy, why = base_policy.authorize_payment(user, offer["price"], commit=False)
+                if not ok_policy:
+                    st.error(why)
+                    st.caption("Tip: adjust your limits in Profile → Autonomy & Limits.")
                 else:
-                    st.warning("Not verified yet.")
-                    st.caption(msg)
-        except Exception as e:
-            st.error("Couldn’t verify via RPC. You can still use ArcScan as proof.")
-            with st.expander("Details"):
-                st.exception(e)
+                    cmd = cast_usdc_transfer_cmd(
+                        to_address=treasury.strip(),
+                        amount_usdc=offer["price"],
+                        rpc_url=rpc_url,
+                        usdc_erc20=usdc_erc20,
+                        usdc_decimals=usdc_decimals,
+                        private_key_env="$PRIVATE_KEY",
+                    )
+                    st.markdown('<div class="card"><div style="font-weight:760">Run this locally</div></div>', unsafe_allow_html=True)
+                    st.code(cmd, language="bash")
+                    st.caption("Do **not** paste private keys into the app. Use an env var: $PRIVATE_KEY.")
+                    if st.button("I’ve paid — go to Verify →", type="primary"):
+                        st.session_state["checkout_step"] = 3
+                        st.rerun()
+
+        # Step 3: verify receipt
+        if step == 3:
+            txh = st.text_input("Receipt ID (tx hash)", value="", placeholder="0x...", key="checkout_txh")
+            if txh and not is_tx_hash(txh.strip()):
+                st.error("That doesn’t look like a tx hash.")
+            can_verify = bool(txh.strip()) and is_tx_hash(txh.strip())
+            if st.button("Verify receipt", type="primary", disabled=not can_verify):
+                txh = txh.strip()
+                try:
+                    receipt = get_tx_receipt(rpc_url, txh)
+                    if not receipt:
+                        st.warning("Receipt not found yet. Wait ~10–20s and try again.")
+                    else:
+                        # Require success status
+                        status = str(receipt.get("status", "")).lower()
+                        if status not in ("0x1", "1", "true"):
+                            st.error("Transaction failed (status not successful).")
+                        else:
+                            ok, msg = verify_erc20_transfer(
+                                receipt=receipt,
+                                token_address=usdc_erc20,
+                                to_address=treasury.strip(),
+                                min_amount_base_units=to_base_units(offer["price"], usdc_decimals),
+                            )
+                            if ok:
+                                # Commit policy counters only after verified
+                                base_policy.authorize_payment(user, offer["price"], commit=True)
+
+                                # Idempotent save by tx_hash
+                                purchases = user.get("purchases") if isinstance(user.get("purchases"), list) else []
+                                existing_i = None
+                                for i, p in enumerate(purchases):
+                                    if (p or {}).get("tx_hash") == txh:
+                                        existing_i = i
+                                        break
+                                rec = {
+                                    "ts": _dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                                    "item_id": offer["id"],
+                                    "name": offer["name"],
+                                    "price": offer["price"],
+                                    "currency": "USDC",
+                                    "tx_hash": txh,
+                                    "status": "verified",
+                                }
+                                if existing_i is not None:
+                                    purchases.pop(existing_i)
+                                purchases.insert(0, rec)
+                                user["purchases"] = purchases[:50]
+
+                                grant_xp(user, 25, "Checkout", f"Verified {offer['name']}")
+                                add_notification(user, "Verified ✅", f"{offer['name']} saved to your profile.")
+                                save_current_user()
+                                st.success("Verified ✅ (saved to your profile)")
+                                st.caption(msg)
+                            else:
+                                st.warning("Not verified yet.")
+                                st.caption(msg)
+                except Exception as e:
+                    st.error("Couldn’t verify via RPC. You can still use ArcScan as proof.")
+                    with st.expander("Details"):
+                        st.exception(e)
+
+            if explorer:
+                st.caption("Explorer")
+                if txh and is_tx_hash(txh.strip()):
+                    link_button("Open in ArcScan", f"{explorer.rstrip('/')}/tx/{txh.strip()}")
 
 save_current_user()
 

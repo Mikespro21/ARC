@@ -1,4 +1,11 @@
-# Crowdlike (Arc / USDC testnet demo)
+# Crowdlike v0.2 (Arc / USDC testnet demo)
+
+
+## New in 0.2
+- Fixed startup crash when no `secrets.toml` is present.
+- Added missing pages: **Shop**, **Quests**, **Social** (Home buttons now work).
+- Rebuilt **Testnet checkout** flow (Configure → Pay → Verify) and fixed the `treasury` NameError/indent bug.
+- Added **Crowd Score** that gently boosts payment limits (±20%) while staying within safety rails.
 
 Crowdlike is a Streamlit demo exploring **agentic commerce with safety rails** on **Arc (EVM L1)** using **USDC testnet**.
 It focuses on a clear “money moment” for hackathon judging:

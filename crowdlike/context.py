@@ -1,14 +1,31 @@
 import streamlit as st
-from streamlit_cookies_manager import EncryptedCookieManager
+
+from crowdlike.settings import get_setting
+
+
+try:
+    from streamlit_cookies_manager import EncryptedCookieManager  # type: ignore
+except Exception:  # pragma: no cover
+    EncryptedCookieManager = None  # type: ignore
 
 from crowdlike.db import init_db
 from crowdlike.auth import get_user_by_session
 
+
 def init_app_context():
+    """Optional cookie/session context.
+
+    Not used by the core demo flow. Safe to import even if cookies manager isn't installed.
+    """
     init_db()
 
-    cookie_pw = st.secrets.get("COOKIE_PASSWORD", "change-me")
-    cookies = EncryptedCookieManager(prefix="crowdlike/", password=cookie_pw)
+    if EncryptedCookieManager is None:
+        raise RuntimeError(
+            "streamlit_cookies_manager is not installed. Install it or avoid importing crowdlike.context."
+        )
+
+    cookie_pw = get_setting("COOKIE_PASSWORD", "change-me")
+    cookies = EncryptedCookieManager(prefix="crowdlike/", password=str(cookie_pw))
     if not cookies.ready():
         st.stop()
 

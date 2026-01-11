@@ -59,6 +59,13 @@ def ensure_user_schema(user: Dict[str, Any]) -> Dict[str, Any]:
 
     # Safety rails / payment policy (used by checkout)
     user.setdefault("policy", {"risk": 25, "max_per_tx_usdc": 0.10, "daily_cap_usdc": 0.50, "cooldown_s": 15})
+
+    # Crowd signals (demo). Score should feel earned, not magical.
+    user.setdefault("crowd", {"score": 50.0, "likes_received": 0, "likes_given": 0})
+    user.setdefault("social_feed", [])  # local-only demo feed of posts
+
+    # Agent settings (demo)
+    user.setdefault("agent", {"mode": "assist"})  # off | assist | auto (auto is policy-limited)
     user.setdefault("visits", {})  # page_id -> count
     user.setdefault("quests_claimed", {})  # date -> [quest_id]
 
