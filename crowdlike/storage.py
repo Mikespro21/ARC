@@ -16,11 +16,21 @@ def _ensure_dirs() -> None:
 
 
 def safe_username(name: str) -> str:
-    """Normalize a username to a safe, file-friendly id."""
-    name = (name or "").strip().lower()
-    name = re.sub(r"\s+", "_", name)
-    name = re.sub(r"[^a-z0-9_\-\.]", "", name)
-    return name[:32] or "member"
+    """Normalize a username to a safe, file-friendly id.
+
+    Rules (demo-safe):
+    - lowercased
+    - spaces -> underscore
+    - allowed: a-z, 0-9, underscore
+    - 3..20 chars
+    """
+    raw = (name or "").strip().lower()
+    raw = re.sub(r"\s+", "_", raw)
+    raw = re.sub(r"[^a-z0-9_]", "", raw)
+    raw = re.sub(r"_+", "_", raw).strip("_")
+    if len(raw) < 3:
+        return "member"
+    return raw[:20]
 
 
 def _user_path(user_id: str) -> Path:

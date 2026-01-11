@@ -36,17 +36,17 @@ def apply_ui() -> None:
       *{ animation: none !important; transition: none !important; }
     }
 
+    
+    /* Mostly-white background with soft blue + minimal purple */
     .stApp{
-        /* strict 60/30/10 layout math */
-        background: linear-gradient(
-            180deg,
-            var(--blue-soft) 0%,
-            var(--blue-soft) 30%,
-            var(--white) 30%,
-            var(--white) 90%,
-            var(--purple-soft) 90%,
-            var(--purple-soft) 100%
-        );
+        background:
+          radial-gradient(900px 360px at 16% 6%, rgba(14,165,233,0.10) 0%, rgba(14,165,233,0.00) 62%),
+          radial-gradient(780px 320px at 86% 10%, rgba(167,139,250,0.06) 0%, rgba(167,139,250,0.00) 60%),
+          linear-gradient(135deg,
+            rgba(255,255,255,0.995) 0%,
+            rgba(255,255,255,0.995) 58%,
+            rgba(14,165,233,0.04) 100%
+          );
         color: var(--text);
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }

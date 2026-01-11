@@ -1,66 +1,61 @@
-## Foundry
+# Crowdlike (Arc / USDC testnet demo)
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Crowdlike is a Streamlit demo exploring **agentic commerce with safety rails** on **Arc (EVM L1)** using **USDC testnet**.
+It focuses on a clear “money moment” for hackathon judging:
 
-Foundry consists of:
+**Profile → Market → Checkout → Verify receipt**
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Quickstart
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+### 1) Install
+```bash
+python -m venv .venv
+source .venv/Scripts/activate   # Git Bash on Windows
+pip install -U pip
+pip install -r requirements.txt
 ```
 
-### Test
-
-```shell
-$ forge test
+### 2) Run
+```bash
+streamlit run app.py
 ```
 
-### Format
+## Demo flow (recommended for judges)
 
-```shell
-$ forge fmt
+1. **Profile**: set your wallet address (MetaMask/Rabby works).
+2. **Market**: try the practice simulator, then pick an offer.
+3. **Checkout**: generate a payment command (or use your wallet if you adapt it).
+4. **Verify**: paste the transaction hash and verify the USDC transfer on-chain.
+
+## Safety rails (policy)
+
+In **Profile → Autonomy & Limits**, you can set:
+- **Max per transaction (USDC)**
+- **Daily cap (USDC)**
+- **Cooldown (seconds)**
+
+These are enforced before generating payment actions.
+
+## Demo mode (recommended)
+
+By default, `DEMO_MODE` is treated as **on** and locks network settings to Arc testnet:
+- RPC: https://rpc.testnet.arc.network
+- Explorer: https://testnet.arcscan.app
+- USDC interface: 0x3600000000000000000000000000000000000000
+- Decimals: 6
+
+If you want to customize networks locally, set `DEMO_MODE=false` in Streamlit secrets.
+
+## Notes
+
+- This demo stores profiles **locally** in `.crowdlike_data/` (created at runtime). Do not ship that directory in releases.
+- Never commit `.env` or private keys. Use Streamlit secrets or local untracked environment variables.
+
+## Release
+
+To create a clean zip:
+```bash
+./scripts/build_release.sh v1.1.0
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+MIT licensed — see `LICENSE`.

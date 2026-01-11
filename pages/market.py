@@ -5,6 +5,7 @@ from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import record_visit, ensure_user_schema, grant_xp, add_notification, log_activity
 from crowdlike.market_data import get_markets, get_market_chart_7d
+from crowdlike.policy import PaymentPolicy
 from crowdlike.arc import (
     cast_usdc_transfer_cmd,
     get_tx_receipt,
@@ -248,73 +249,96 @@ with tab_checkout:
                 unsafe_allow_html=True,
             )
 
-        st.write("")
-        if st.button("Generate payment command", type="primary", key="checkout_gen_cmd"):
-            if not is_address(treasury.strip()):
-                st.error("Enter a valid treasury address.")
+st.write("")
+if st.button("Generate payment command", type="primary", key="checkout_gen_cmd"):
+    if not is_address(treasury.strip()):
+        st.error("Enter a valid treasury address.")
+    else:
+        policy = PaymentPolicy.from_user(user)
+        ok_policy, why = policy.authorize_payment(user, offer["price"], commit=False)
+        if not ok_policy:
+            st.error(why)
+        else:
+            cmd = cast_usdc_transfer_cmd(
+                to_address=treasury.strip(),
+                amount_usdc=offer["price"],
+                rpc_url=rpc_url,
+                usdc_erc20=usdc_erc20,
+                usdc_decimals=usdc_decimals,
+                private_key_env="$PRIVATE_KEY",
+            )
+            st.code(cmd, language="bash")
+            st.caption("Run this in your terminal. It will output a tx hash (receipt ID).")
+
+receipt = st.text_input("Receipt ID (tx hash)", placeholder="0x + 64 hex", key="checkout_tx")
+if receipt:
+    if is_tx_hash(receipt.strip()):
+        link_button("View receipt on ArcScan", f"{explorer}/tx/{receipt.strip()}")
+    else:
+        st.warning("This doesn’t look like a valid tx hash yet.")
+
+st.write("")
+if st.button("Verify receipt", type="primary", key="checkout_verify"):
+    if not receipt or not is_tx_hash(receipt.strip()):
+        st.error("Paste a valid receipt ID first.")
+    elif not is_address(treasury.strip()):
+        st.error("Treasury address is missing.")
+    else:
+        try:
+            rcpt = get_tx_receipt(rpc_url, receipt.strip())
+            if not rcpt:
+                st.info("Receipt not found yet. Try again in a moment.")
             else:
-                cmd = cast_usdc_transfer_cmd(
+                status = (rcpt.get("status") or "").lower()
+                if status not in ("0x1", "1", 1):
+                    st.error("Transaction failed (receipt status not successful).")
+                    st.stop()
+
+                # Verify at least the offer price
+                ok, msg = verify_erc20_transfer(
+                    rcpt,
+                    token_address=usdc_erc20,
                     to_address=treasury.strip(),
-                    amount_usdc=offer["price"],
-                    rpc_url=rpc_url,
-                    usdc_erc20=usdc_erc20,
-                    usdc_decimals=usdc_decimals,
-                    private_key_env="$PRIVATE_KEY",
+                    min_amount_base_units=to_base_units(offer["price"], usdc_decimals),
                 )
-                st.code(cmd, language="bash")
-                st.caption("Run this in your terminal. It will output a tx hash (receipt ID).")
+                if ok:
+                    add_notification(user, f"Payment verified: {offer['name']} ✔️", "success")
+                    grant_xp(user, 140, "Checkout", f"Bought {offer['name']}")
+                    log_activity(user, f"Paid ${offer['price']} for {offer['name']} (testnet)", icon="🧾")
 
-        receipt = st.text_input("Receipt ID (tx hash)", placeholder="0x + 64 hex", key="checkout_tx")
-        if receipt:
-            if is_tx_hash(receipt.strip()):
-                link_button("View receipt on ArcScan", f"{explorer}/tx/{receipt.strip()}")
-            else:
-                st.warning("That doesn’t look like a tx hash yet.")
+                    # Commit policy counters only after verification
+                    PaymentPolicy.from_user(user).authorize_payment(user, offer["price"], commit=True)
 
-        verify = st.button("Verify receipt", key="checkout_verify")
-        if verify:
-            if not is_tx_hash(receipt.strip()):
-                st.error("Paste a valid receipt ID first.")
-            elif not is_address(treasury.strip()):
-                st.error("Treasury address is missing.")
-            else:
-                try:
-                    rcpt = get_tx_receipt(rpc_url, receipt.strip())
-                    if not rcpt:
-                        st.info("Receipt not found yet. Try again in a moment.")
-                    else:
-                        # Verify at least the offer price
-                        ok, msg = verify_erc20_transfer(
-                            rcpt,
-                            token_address=usdc_erc20,
-                            to_address=treasury.strip(),
-                            min_amount_base_units=to_base_units(offer["price"], usdc_decimals),
-                        )
-                        if ok:
-                            add_notification(user, f"Payment verified: {offer['name']} ✔️", "success")
-                            grant_xp(user, 140, "Checkout", f"Bought {offer['name']}")
-                            log_activity(user, f"Paid ${offer['price']} for {offer['name']} (testnet)", icon="🧾")
-                            user.setdefault("purchases", []).insert(
-                                0,
-                                {
-                                    "ts": __import__("datetime").datetime.utcnow().isoformat(timespec="seconds")+"Z",
-                                    "item_id": offer["id"],
-                                    "name": offer["name"],
-                                    "price": offer["price"],
-                                    "currency": "USDC(testnet)",
-                                    "tx_hash": receipt.strip(),
-                                    "status": "verified",
-                                },
-                            )
-                            save_current_user()
-                            st.success("Verified ✅ (saved to your profile)")
-                        else:
-                            st.warning("Not verified yet.")
-                            st.caption(msg)
-                except Exception as e:
-                    st.error("Couldn’t verify via RPC. You can still use ArcScan as proof.")
-                    with st.expander("Details"):
-                        st.exception(e)
+                    # Save receipt idempotently (avoid duplicates on reruns)
+                    txh = receipt.strip()
+                    purchases = user.setdefault("purchases", [])
+                    existing_i = None
+                    for i, row in enumerate(purchases):
+                        if isinstance(row, dict) and str(row.get("tx_hash", "")).lower() == txh.lower():
+                            existing_i = i
+                            break
+                    rec = {
+                        "ts": __import__("datetime").datetime.utcnow().isoformat(timespec="seconds") + "Z",
+                        "item_id": offer["id"],
+                        "name": offer["name"],
+                        "price": offer["price"],
+                        "currency": "USDC(testnet)",
+                        "tx_hash": txh,
+                        "status": "verified",
+                    }
+                    if existing_i is not None:
+                        purchases.pop(existing_i)
+                    purchases.insert(0, rec)
+
+                    save_current_user()
+                    st.success("Verified ✅ (saved to your profile)")
+                else:
+                    st.warning("Not verified yet.")
+                    st.caption(msg)
+        except Exception as e:
+            st.error("Couldn’t verify via RPC. You can still use ArcScan as proof.")
+            with st.expander("Details"):
+                st.exception(e)
 
 save_current_user()
 

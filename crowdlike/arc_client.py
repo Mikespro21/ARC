@@ -4,10 +4,14 @@ from dataclasses import dataclass
 from decimal import Decimal, ROUND_DOWN
 from typing import Any, Optional
 
-from web3 import Web3
+try:
+    from web3 import Web3  # type: ignore
+except Exception:  # pragma: no cover
+    Web3 = None  # type: ignore
 
 
-USDC_ERC20_INTERFACE = Web3.to_checksum_address("0x3600000000000000000000000000000000000000")  # Arc Testnet :contentReference[oaicite:2]{index=2}
+
+USDC_ERC20_INTERFACE = "0x3600000000000000000000000000000000000000"  # Arc testnet USDC ERC-20 interface
 
 ERC20_ABI: list[dict[str, Any]] = [
     {
@@ -45,6 +49,7 @@ def to_base_units(amount: str, decimals: int) -> int:
 
 @dataclass
 class ArcClient:
+
     rpc_url: str
 
     def __post_init__(self) -> None:
@@ -55,19 +60,19 @@ class ArcClient:
 
     def native_usdc_balance_18(self, address: str) -> int:
         """
-        Native USDC balance (gas token) uses 18 decimals of precision on Arc. :contentReference[oaicite:3]{index=3}
+        Native USDC balance (gas token) uses 18 decimals of precision on Arc. 
         """
         return int(self.w3.eth.get_balance(Web3.to_checksum_address(address)))
 
     def usdc_contract(self):
-        return self.w3.eth.contract(address=USDC_ERC20_INTERFACE, abi=ERC20_ABI)
+        return self.w3.eth.contract(address=Web3.to_checksum_address(USDC_ERC20_INTERFACE), abi=ERC20_ABI)
 
     def usdc_decimals(self) -> int:
         return int(self.usdc_contract().functions.decimals().call())
 
     def usdc_balance(self, address: str) -> int:
         """
-        USDC ERC-20 interface balance uses 6 decimals. :contentReference[oaicite:4]{index=4}
+        USDC ERC-20 interface balance uses 6 decimals. 
         """
         return int(self.usdc_contract().functions.balanceOf(Web3.to_checksum_address(address)).call())
 

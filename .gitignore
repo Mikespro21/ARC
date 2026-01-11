@@ -25,3 +25,18 @@ Thumbs.db
 crowdlike.db
 __pycache__/
 *.pyc
+
+# Release hygiene
+.env
+.crowdlike_data/
+crowdlike.db
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.stackdump
+_backup_*/
+_archive_*/
+out/
+lib/
+cache/

@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional, Tuple
 import streamlit as st
 
 from .storage import load_active_user, load_user, save_active_user, save_user, safe_username
+from .security import USERNAME_RE
 from .game import ensure_user_schema, grant_xp, add_notification, log_activity, record_active_day
 
 
@@ -136,10 +137,14 @@ def _login_inner(app_name: str) -> None:
             save_user(uid, data)
             _load_into_session(uid, data)
             st.rerun()
-
         if do:
-            uid = safe_username(u)
+            raw = (u or "").strip().lower()
+            if not USERNAME_RE.match(raw or ""):
+                st.error("Username must be 3–20 chars: a–z, 0–9, underscore.")
+                return
+            uid = safe_username(raw)
             data = load_user(uid)
+
             if not data:
                 st.error("No profile found. Use **Create profile** first.")
             else:
@@ -175,17 +180,21 @@ def _login_inner(app_name: str) -> None:
         bio = st.text_area("Bio (optional)", placeholder="What are you building?", key="auth_new_bio")
 
         create = st.button("Create profile", type="primary", key="auth_create_btn")
-
         if create:
-            uid = safe_username(new_u)
-            if not uid or uid in ("member", "admin"):
+            raw = (new_u or "").strip().lower()
+            if not USERNAME_RE.match(raw or ""):
+                st.error("Username must be 3–20 chars: a–z, 0–9, underscore.")
+                return
+            uid = safe_username(raw)
+            if uid in ("member", "admin"):
                 st.error("Pick a different username.")
                 return
+
             if load_user(uid):
                 st.error("That username already exists on this device. Try logging in instead.")
                 return
 
-            data = _new_user_state(new_u.strip(), avatar)
+            data = _new_user_state(raw, avatar)
             data["bio"] = (bio or "").strip()
             # Auth block
             if new_pin.strip():
