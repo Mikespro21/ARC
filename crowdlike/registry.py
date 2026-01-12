@@ -38,6 +38,8 @@ PAGES: List[Page] = [
     # More
     Page("chat", "Chat", "pages/chat.py", "💬", "More", False, 10, "Per-agent chat"),
     Page("compare", "Leaderboards", "pages/compare.py", "🏁", "More", False, 11, "Profit+streak scoreboards"),
+    Page("analytics", "Analytics", "pages/analytics.py", "📊", "Core", False, 12, "Runs + risk + portfolio metrics"),
+
     Page("safety", "Safety", "pages/safety.py", "🛡️", "Controls", False, 20, "Panic sell + guardrails"),
     Page("pricing", "Pricing", "pages/pricing.py", "💳", "Controls", False, 21, "Per-day estimator"),
     Page("quests", "Quests", "pages/quests.py", "🧩", "Growth", False, 30, "Daily XP/coins"),

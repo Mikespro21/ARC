@@ -122,8 +122,21 @@ def ensure_agent_schema(agent: Dict[str, Any]) -> Dict[str, Any]:
         agent["approvals"] = []
 
     agent.setdefault("mode", "assist")
-    if str(agent.get("mode") or "") not in ("off", "assist", "auto"):
+    if str(agent.get("mode") or "") not in ("off", "assist", "auto", "auto_plus"):
         agent["mode"] = "assist"
+
+    # Autonomy ladder + run reports (v0.60)
+    agent.setdefault("runs", [])
+    if not isinstance(agent.get("runs"), list):
+        agent["runs"] = []
+
+    try:
+        from .autonomy import ensure_agent_autonomy
+        ensure_agent_autonomy(agent)
+    except Exception:
+        agent.setdefault("autonomy", {})
+        if not isinstance(agent.get("autonomy"), dict):
+            agent["autonomy"] = {}
 
     agent.setdefault("value_history", [{"d": _today(), "v": 1000.0}])
     if not isinstance(agent.get("value_history"), list):

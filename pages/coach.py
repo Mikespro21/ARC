@@ -9,6 +9,8 @@ from crowdlike.agents import get_active_agent, agent_label, get_agents
 from crowdlike.layout import render_sidebar
 from crowdlike.events import log_event, recent_events
 from crowdlike.orchestrator import propose_next_action, decide_auto_execute
+from crowdlike.runs import run_agent_cycle
+from crowdlike.autonomy import trust_signals, effective_mode
 from crowdlike.crowd_deviation import cohort_for_agent, deviation_pct
 from crowdlike.copying import apply_copy
 from crowdlike.audit import log_audit
@@ -49,11 +51,22 @@ except Exception:
 mode = str(active_agent.get("mode") or "assist")
 mode = st.select_slider(
     "Autonomy mode",
-    options=["off", "assist", "auto"],
-    value=mode if mode in ("off", "assist", "auto") else "assist",
-    help="assist = proposes actions that require approval. auto = may auto-execute *practice trades* when within constraints.",
+    options=["off", "assist", "auto", "auto_plus"],
+    value=mode if mode in ("off", "assist", "auto", "auto_plus") else "assist",
+    help="assist = proposes actions that require approval. auto = may auto-execute small *practice trades* within caps. auto_plus = higher caps when trust signals unlock it.",
 )
 active_agent["mode"] = mode
+
+# Autonomy ladder visibility (requested vs effective)
+sig = trust_signals(user, active_agent)
+eff_mode, eff_reason = effective_mode(active_agent, sig)
+callout(
+    f"Effective autonomy: **{eff_mode}** — {eff_reason}\n"
+    f"Crowd score: {sig.crowd_score:.0f} • Verified receipts: {sig.verified_receipts} • "
+    f"Deviation: {sig.deviation_pct:.1f}%"
+    + (" • Safety: OK" if sig.safety_ok else " • Safety: CHECK"),
+    tone="muted" if eff_mode in ("assist", "auto", "auto_plus") else "warning",
+)
 
 soft_divider()
 
@@ -93,86 +106,29 @@ st.caption("Proposals are queued for approval. Payments always require manual co
 
 colA, colB = st.columns([1.0, 1.0])
 with colA:
-    if st.button("Generate proposal", type="primary", use_container_width=True):
-        p = propose_next_action(user, active_agent)
-        log_event(user, kind="agent", title="New proposal", details=str(p.get("title","")), severity="info", agent_id=str(active_agent.get("id")))
-        grant_xp(user, 20, "Coach", "Generated proposal")
-        st.success(f"Queued: {p.get('title')}")
-        # Auto-execute if permitted
-        if decide_auto_execute(user, active_agent, p):
-            # emulate clicking approve for trades
-            p["status"] = "approved"
-            _run_auto = True
+    if st.button("Run agent cycle", type="primary", use_container_width=True):
+        report = run_agent_cycle(user, active_agent, markets=rows if isinstance(rows, list) else None, reason="coach")
+        prop = report.get("proposal") if isinstance(report.get("proposal"), dict) else {}
+        title = str(prop.get("title") or "Action")
+        if report.get("executed"):
+            st.success(f"Executed: {title}")
+        elif report.get("queued"):
+            st.success(f"Queued for approval: {title}")
         else:
-            _run_auto = False
-
-        save_current_user(user)
-        if _run_auto:
-            st.rerun()
+            dec = report.get("decision") if isinstance(report.get("decision"), dict) else {}
+            st.info(str(dec.get("reason") or "No action"))
+        save_current_user()
+        st.rerun()
 
 with colB:
-    st.write("")
-    st.write("")
-
-# Auto-exec path: if agent is in auto and last proposal is trade and allowed, execute it immediately.
-if mode == "auto" and isinstance(active_agent.get("approvals"), list) and active_agent["approvals"]:
-    latest = active_agent["approvals"][0]
-    if isinstance(latest, dict) and latest.get("status") == "approved" and latest.get("type") == "trade":
-        # execute trade and then remove
-        payload = latest.get("payload") or {}
-        asset = str(payload.get("asset") or "").strip()
-        side = str(payload.get("side","BUY")).upper()
-        try:
-            qty = float(payload.get("qty", 0.0) or 0.0)
-        except Exception:
-            qty = 0.0
-        px = float(price_map.get(asset, 0.0) or 0.0) or 100.0
-        notional = qty * px
-
-        port = active_agent.get("portfolio") if isinstance(active_agent.get("portfolio"), dict) else {}
-        port.setdefault("cash_usdc", 1000.0)
-        port.setdefault("positions", {})
-        port.setdefault("trades", [])
-
-        cash = float(port.get("cash_usdc") or 0.0)
-        positions = port.get("positions") if isinstance(port.get("positions"), dict) else {}
-        cur_qty = float(positions.get(asset, 0.0) or 0.0)
-
-        ok = False
-        if side == "BUY":
-            if cash >= notional:
-                cash -= notional
-                cur_qty += qty
-                ok = True
-        else:
-            if cur_qty >= qty:
-                cash += notional
-                cur_qty -= qty
-                ok = True
-
-        if ok:
-            positions[asset] = cur_qty
-            port["positions"] = {k: v for k, v in positions.items() if abs(float(v or 0.0)) > 1e-12}
-            port["cash_usdc"] = float(cash)
-            trades = port.get("trades") if isinstance(port.get("trades"), list) else []
-            trades.insert(0, {"ts": latest.get("ts"), "asset": asset, "side": side, "qty": qty, "price": px, "notional": round(notional,2), "auto": True})
-            port["trades"] = trades[:200]
-            active_agent["portfolio"] = port
-
-            log_event(user, kind="trade", title=f"Auto trade executed", details=f"{side} {qty} {asset} @ ${px:.2f}", severity="success", agent_id=str(active_agent.get("id")))
-            log_audit(user, kind="auto_execute", msg=f"Auto-executed trade {side} {asset} qty={qty}", agent_id=str(active_agent.get("id")), proposal_id=str(latest.get("id")))
-            log_activity(user, f"Auto trade {side} {asset}", icon="🤖")
-        else:
-            log_event(user, kind="agent", title="Auto trade blocked", details="Insufficient balance/position.", severity="warn", agent_id=str(active_agent.get("id")))
-            log_audit(user, kind="auto_block", msg="Auto trade blocked due to balance/position.", agent_id=str(active_agent.get("id")), proposal_id=str(latest.get("id")), severity="warn")
-
-        # remove proposal regardless to prevent loops
-        try:
-            active_agent["approvals"].remove(latest)
-        except Exception:
-            pass
-        save_current_user(user)
+    if st.button("Generate proposal only", use_container_width=True):
+        p = propose_next_action(user, active_agent)
+        log_event(user, kind="agent", title="New proposal", details=str(p.get("title","")), severity="info", agent_id=str(active_agent.get("id")))
+        grant_xp(user, 10, "Coach", "Generated proposal")
+        st.success(f"Queued: {p.get('title')}")
+        save_current_user()
         st.rerun()
+
 
 soft_divider()
 
@@ -277,7 +233,7 @@ else:
                         active_agent["approvals"].remove(p)
                     except Exception:
                         pass
-                    save_current_user(user)
+                    save_current_user()
                     st.rerun()
 
             with cols[1]:
@@ -288,7 +244,7 @@ else:
                         pass
                     log_event(user, kind="agent", title="Rejected proposal", details=str(p.get("title","")), severity="info", agent_id=str(active_agent.get("id")))
                     log_audit(user, kind="reject", msg=f"Rejected proposal {p.get('title','')}", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")))
-                    save_current_user(user)
+                    save_current_user()
                     st.rerun()
 
 soft_divider()

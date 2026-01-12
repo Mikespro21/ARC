@@ -14,6 +14,7 @@ from crowdlike.agents import (
 )
 from crowdlike.market_data import get_markets
 from crowdlike.performance import portfolio_value, ensure_daily_snapshot, returns_windows, since_inception
+from crowdlike.autonomy import trust_signals, effective_mode
 from crowdlike.strategy import STRATEGY_TEMPLATES, apply_template, copy_strategy
 from crowdlike.layout import render_sidebar
 from crowdlike.events import log_event
@@ -91,15 +92,83 @@ with st.expander("➕ Create a new agent", expanded=False):
 
 soft_divider()
 
+# --- Configure selected agent ---
+with st.expander("⚙️ Configure selected agent", expanded=False):
+    sig = trust_signals(user, active)
+    eff_mode, eff_reason = effective_mode(active, sig)
+    st.markdown(f"**Effective autonomy:** `{eff_mode}` — {eff_reason}")
+    st.caption("AUTO+ may downgrade automatically if trust signals are not met.")
+
+    c1, c2, c3 = st.columns([1.0, 1.0, 1.0])
+    with c1:
+        new_mode = st.select_slider(
+            "Autonomy ladder",
+            options=["off", "assist", "auto", "auto_plus"],
+            value=str(active.get("mode") or "assist"),
+            help="assist = propose and approve. auto = small practice trades may auto-execute. auto_plus = higher caps if unlocked.",
+        )
+        active["mode"] = new_mode
+
+    # Caps (optional tuning)
+    with c2:
+        cfg = active.get("autonomy") if isinstance(active.get("autonomy"), dict) else {}
+        active["autonomy"] = cfg
+        cfg.setdefault("auto_max_notional_usdc", 10.0)
+        cfg.setdefault("auto_plus_max_notional_usdc", 40.0)
+        cap = st.number_input("Auto notional cap (USDC)", min_value=1.0, max_value=500.0, value=float(cfg.get("auto_max_notional_usdc") or 10.0), step=1.0)
+        capp = st.number_input("Auto+ notional cap (USDC)", min_value=5.0, max_value=2000.0, value=float(cfg.get("auto_plus_max_notional_usdc") or 40.0), step=5.0)
+        cfg["auto_max_notional_usdc"] = float(cap)
+        cfg["auto_plus_max_notional_usdc"] = float(capp)
+
+    with c3:
+        cfg = active.get("autonomy") if isinstance(active.get("autonomy"), dict) else {}
+        cfg.setdefault("auto_max_trades_per_day", 2)
+        cfg.setdefault("auto_plus_max_trades_per_day", 6)
+        tpd = st.number_input("Auto trades/day", min_value=0, max_value=25, value=int(cfg.get("auto_max_trades_per_day") or 2), step=1)
+        tpd2 = st.number_input("Auto+ trades/day", min_value=0, max_value=50, value=int(cfg.get("auto_plus_max_trades_per_day") or 6), step=1)
+        cfg["auto_max_trades_per_day"] = int(tpd)
+        cfg["auto_plus_max_trades_per_day"] = int(tpd2)
+        active["autonomy"] = cfg
+
+    st.write("")
+    st.subheader("Strategy")
+    strat = active.get("strategy") if isinstance(active.get("strategy"), dict) else {}
+    cur_name = str(strat.get("name") or "Balanced")
+    opts = [t["name"] for t in STRATEGY_TEMPLATES]
+    try:
+        i0 = opts.index(cur_name)
+    except Exception:
+        i0 = 0
+    pick = st.selectbox("Template", options=opts, index=i0, help="A lightweight template that influences trade suggestions.")
+    about = next((t.get("about") for t in STRATEGY_TEMPLATES if t.get("name") == pick), "")
+    st.caption(str(about or ""))
+
+    if st.button("Save agent settings", type="primary"):
+        active.setdefault("strategy", {})
+        if isinstance(active["strategy"], dict):
+            tmpl = next((t for t in STRATEGY_TEMPLATES if t.get("name") == pick), None)
+            if tmpl:
+                active["strategy"]["name"] = tmpl["name"]
+                active["strategy"]["params"] = dict(tmpl.get("params") or {})
+        save_current_user()
+        st.success("Saved.")
+        st.rerun()
+
+soft_divider()
+
+
 # --- Active agent quick controls ---
 st.markdown('<div class="card card-strong">', unsafe_allow_html=True)
 ac1, ac2, ac3, ac4 = st.columns([1.2, 1.0, 1.0, 1.0])
 with ac1:
     st.markdown(f"<div style='font-weight:860'>Active</div><div style='font-size:1.15rem;font-weight:900;margin-top:2px'>{agent_label(active)}</div>", unsafe_allow_html=True)
 with ac2:
-    mode = (user.get("agent") or {}).get("mode", "assist")
+    mode = str(active.get("mode") or "assist")
+    sig = trust_signals(user, active)
+    eff_mode, _ = effective_mode(active, sig)
     st.caption("Autonomy")
     st.write(f"**{str(mode).upper()}**")
+    st.caption(f"Effective: {eff_mode}")
 with ac3:
     strat = active.get("strategy") if isinstance(active.get("strategy"), dict) else {}
     st.caption("Strategy")

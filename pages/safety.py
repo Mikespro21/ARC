@@ -85,7 +85,7 @@ with colE:
         log_event(user, kind="safety", title="Panic armed", details="Panic exit will execute on next trigger check.", severity="warn", agent_id=str(active.get("id")))
         log_audit(user, kind="safety", msg="Panic armed", agent_id=str(active.get("id")), severity="warn")
         grant_xp(user, 10, "Safety", "Panic armed")
-        save_current_user(user)
+        save_current_user()
         st.rerun()
 
 soft_divider()
@@ -100,7 +100,7 @@ if st.button("Check triggers now", use_container_width=True):
         grant_xp(user, 25, "Safety", "Exit executed")
     else:
         st.info(msg)
-    save_current_user(user)
+    save_current_user()
     st.rerun()
 
 st.markdown("### Manual exit")
@@ -113,7 +113,7 @@ if st.button("Exit to USDC now (demo)", use_container_width=True, disabled=not e
         grant_xp(user, 25, "Safety", "Manual exit")
     else:
         st.warning(msg)
-    save_current_user(user)
+    save_current_user()
     st.rerun()
 
 save_current_user()
