@@ -62,7 +62,7 @@ def _choose_copy_mode(user: Dict[str, Any], agent: Dict[str, Any]) -> str:
     return "mirror_trades" if r < 0.40 else ("copy_settings" if r < 0.70 else "copy_strategy")
 
 
-def propose_next_action(user: Dict[str, Any], agent: Dict[str, Any]) -> Dict[str, Any]:
+def propose_next_action(user: Dict[str, Any], agent: Dict[str, Any], markets: Any = None) -> Dict[str, Any]:
     """Create and enqueue a proposal.
 
     Proposal types:
