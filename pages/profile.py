@@ -170,6 +170,10 @@ with tabs[2]:
     risk = st.slider("Risk level", 0, 100, value=risk, help="Guides suggested defaults.", key="pf_risk")
     policy["risk"] = risk
 
+    max_dev = float(policy.get("max_deviation_pct", 20.0) or 20.0)
+    max_dev = st.slider("Max crowd deviation (%)", 0.0, 50.0, value=float(max_dev), step=1.0, help="Average percentile distance from the crowd (Coach).", key="pf_max_dev")
+    policy["max_deviation_pct"] = float(max_dev)
+
     if risk <= 33:
         tier, max_tx, daily_cap, cooldown = "Conservative", 0.05, 0.25, 30
     elif risk <= 66:

@@ -182,7 +182,7 @@ with tab_practice:
                     else:
                         portfolio["cash_usdc"] = float(portfolio["cash_usdc"]) - float(amt)
                         portfolio["positions"][coin] = float(portfolio["positions"].get(coin, 0.0)) + qty
-                        portfolio["trades"].insert(0, {"side": "BUY", "coin": coin, "cash": float(amt), "qty": qty, "price": px})
+                        portfolio["trades"].insert(0, {"ts": __import__("datetime").datetime.utcnow().isoformat(timespec="seconds")+"Z", "side": "BUY", "coin": coin, "cash": float(amt), "qty": qty, "price": px})
                         grant_xp(user, 45, "Market", "Practice BUY")
                         log_activity(user, f"Practice BUY {coin} (${amt:.2f})", icon="📈")
                         log_event(user, kind="trade", title=f"Practice BUY {coin}", details=f"${amt:.2f} on {coin}", severity="info", agent_id=str(active_agent.get("id")))
@@ -196,7 +196,7 @@ with tab_practice:
                     else:
                         portfolio["cash_usdc"] = float(portfolio["cash_usdc"]) + float(amt)
                         portfolio["positions"][coin] = pos - qty
-                        portfolio["trades"].insert(0, {"side": "SELL", "coin": coin, "cash": float(amt), "qty": qty, "price": px})
+                        portfolio["trades"].insert(0, {"ts": __import__("datetime").datetime.utcnow().isoformat(timespec="seconds")+"Z", "side": "SELL", "coin": coin, "cash": float(amt), "qty": qty, "price": px})
                         grant_xp(user, 45, "Market", "Practice SELL")
                         log_activity(user, f"Practice SELL {coin} (${amt:.2f})", icon="📉")
                         log_event(user, kind="trade", title=f"Practice SELL {coin}", details=f"${amt:.2f} on {coin}", severity="info", agent_id=str(active_agent.get("id")))

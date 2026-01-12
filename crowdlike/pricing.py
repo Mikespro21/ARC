@@ -7,38 +7,31 @@ from dataclasses import dataclass
 class PriceQuote:
     agent_count: int
     risk: float
-    autonomy: str
     total_per_day: float
     per_agent_per_day: float
 
 
-def quote_daily(agent_count: int, risk: float, autonomy: str = "assist") -> PriceQuote:
-    """Demo pricing: pay-per-day with exponential growth as agents/risk/autonomy increase.
+def quote_daily(agent_count: int, risk: float) -> PriceQuote:
+    """Per-day pricing model (Master Context v4).
 
-    The master context describes pay-per-day + exponential costs, but doesn't define a formula.
-    This is a simple, transparent approximation for the demo UI.
+    Final formula:
+        price = (agentCount^2) * (risk / 100)
+
+    - risk is a 0-100 value.
+    - agentCount is the number of agents running/billed.
     """
-    n = max(1, int(agent_count or 1))
-    r = max(0.0, min(100.0, float(risk or 0.0)))
+    try:
+        n = int(agent_count or 0)
+    except Exception:
+        n = 0
+    n = max(0, n)
 
-    # Base per-agent/day
-    base = 0.10  # 10 cents/day
+    try:
+        r = float(risk or 0.0)
+    except Exception:
+        r = 0.0
+    r = max(0.0, min(100.0, r))
 
-    # Risk multiplier (gentle but non-linear)
-    risk_mult = (1.0 + r / 100.0) ** 1.35
-
-    # Autonomy multiplier
-    a = str(autonomy or "assist").lower()
-    if a in ("auto", "autopilot"):
-        auto_mult = 1.85
-    elif a in ("off", "manual"):
-        auto_mult = 0.85
-    else:
-        auto_mult = 1.20
-
-    per_agent = base * risk_mult * auto_mult
-
-    # Exponential scaling with agent count (core idea)
-    total = per_agent * (n ** 1.18)
-
-    return PriceQuote(agent_count=n, risk=r, autonomy=a, total_per_day=float(total), per_agent_per_day=float(per_agent))
+    total = (float(n) ** 2) * (r / 100.0)
+    per_agent = (total / float(n)) if n else 0.0
+    return PriceQuote(agent_count=n, risk=r, total_per_day=float(total), per_agent_per_day=float(per_agent))

@@ -122,7 +122,8 @@ def render_sidebar(user: Dict[str, Any], *, active_page: str = "") -> None:
 
         with st.expander("⋯ More pages", expanded=False):
             q = st.text_input("Search", key=f"sb_search_{active_page}", placeholder="Type to filter…")
-            pages = [p for p in all_pages() if p.path not in ("app.py","pages/market.py","pages/coach.py","pages/agents.py")]
+            role = str(user.get("role") or "human").lower()
+            pages = [p for p in all_pages(role) if p.path not in ("app.py","pages/market.py","pages/coach.py","pages/agents.py")]
             ql = (q or "").strip().lower()
             if ql:
                 pages = [p for p in pages if ql in (f"{p.label} {p.group} {p.desc}").lower()]

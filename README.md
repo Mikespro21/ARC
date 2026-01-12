@@ -1,72 +1,41 @@
-# Crowdlike v0.31 (UX-first multi-agent demo)
+# Crowdlike v0.50 (Vision-aligned demo)
 
+Crowdlike is a Streamlit multi-agent demo exploring **agentic payments** and **crowd-influenced autonomy** on Arc (USDC-centric). This release focuses on the **Master Context** vision: safety-first autonomy, crowd deviation constraints, copy mechanics, and trustless logging.
 
-## New in 0.31
+## What’s new in 0.50 (major)
 
-- Always-on sidebar: **active agent switcher**, **readiness checklist**, and **quick actions** (Checkout / Coach).
-- Safer UX: **confirmations** for destructive actions (panic sell, manual exit, delete agent).
-- Navigation upgrade: **Coach** is now first-class in the top nav.
-- Comparison dashboard ranks agents by **profit** and **% return** across daily/weekly/monthly/yearly.
-- Safety UX: **panic sell**, **fraud alert**, and **auto drawdown exit** (demo converts holdings to “cash”).
-- Pricing UX: pay-per-day estimator with exponential scaling by agents/risk/autonomy.
-- Market + Checkout now run under the **active agent** (purchases are still mirrored into user history for convenience).
+- **Leaderboards (Daily/Weekly/Monthly/Yearly)** using anonymous **Bot IDs**.
+  - Profit is **rounded to 2 decimals before scoring**.
+  - Score formula: **score = (profit * 100) + streaks**.
+- **Crowd deviation constraint (percentile-based)**
+  - Metrics: **riskness**, **trades/day**, **position size (% portfolio per trade)**.
+  - Deviation% = average(|percentile - 50|) across metrics.
+  - If deviation exceeds your configured max, **auto execution is blocked** and approvals are required.
+- **Copy modes (crowd learning)**
+  - `mirror_trades`, `copy_settings`, `copy_strategy` proposals can be generated and approved.
+- **Pricing model updated to spec**
+  - `price = (agentCount^2) * (risk / 100)` per day.
+- **Safety exits expanded**
+  - Configurable **max daily loss (USDC)** + **max drawdown (%)**, plus fraud/anomaly and panic.
+- **Trustless AI audit log (bot/admin-only)**
+  - Proposals and approvals are logged for transparency.
 
-Crowdlike is a Streamlit demo exploring **agentic commerce with safety rails** on **Arc (EVM L1)** using **USDC testnet**.
-It focuses on a clear “money moment” for hackathon judging:
+## Run locally
 
-**Profile → Market → Checkout → Verify receipt**
-
-## Quickstart
-
-### 1) Install
+### 1) Create venv + install deps
 ```bash
 python -m venv .venv
-source .venv/Scripts/activate   # Git Bash on Windows
-pip install -U pip
+source .venv/Scripts/activate
 pip install -r requirements.txt
 ```
 
-### 2) Run
+### 2) Run Streamlit
+From the repo root (same folder as `app.py`):
 ```bash
 streamlit run app.py
 ```
 
-## Demo flow (recommended for judges)
-
-1. **Profile**: set your wallet address (MetaMask/Rabby works).
-2. **Market**: try the practice simulator, then pick an offer.
-3. **Checkout**: generate a payment command (or use your wallet if you adapt it).
-4. **Verify**: paste the transaction hash and verify the USDC transfer on-chain.
-
-## Safety rails (policy)
-
-In **Profile → Autonomy & Limits**, you can set:
-- **Max per transaction (USDC)**
-- **Daily cap (USDC)**
-- **Cooldown (seconds)**
-
-These are enforced before generating payment actions.
-
-## Demo mode (recommended)
-
-By default, `DEMO_MODE` is treated as **on** and locks network settings to Arc testnet:
-- RPC: https://rpc.testnet.arc.network
-- Explorer: https://testnet.arcscan.app
-- USDC interface: 0x3600000000000000000000000000000000000000
-- Decimals: 6
-
-If you want to customize networks locally, set `DEMO_MODE=false` in Streamlit secrets.
-
 ## Notes
 
-- This demo stores profiles **locally** in `.crowdlike_data/` (created at runtime). Do not ship that directory in releases.
-- Never commit `.env` or private keys. Use Streamlit secrets or local untracked environment variables.
-
-## Release
-
-To create a clean zip:
-```bash
-./scripts/build_release.sh v1.1.0
-```
-
-MIT licensed — see `LICENSE`.
+- This is a demo: trades and payments are mocked or practice-mode unless you wire a real Arc/Circle flow.
+- Keep secrets out of git. If you need them, use `.streamlit/secrets.toml` locally.

@@ -1,120 +1,277 @@
 import streamlit as st
 
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, callout, event_feed
+from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, callout, event_feed, metric_card
 from crowdlike.settings import bool_setting
-from crowdlike.tour import maybe_run_tour, tour_complete_step
+from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user
-from crowdlike.game import ensure_user_schema, record_visit, grant_xp, add_notification, log_activity, compute_streak, xp_progress
-from crowdlike.agents import get_active_agent, agent_label
+from crowdlike.game import ensure_user_schema, record_visit, grant_xp, log_activity
+from crowdlike.agents import get_active_agent, agent_label, get_agents
 from crowdlike.layout import render_sidebar
 from crowdlike.events import log_event, recent_events
 from crowdlike.orchestrator import propose_next_action, decide_auto_execute
+from crowdlike.crowd_deviation import cohort_for_agent, deviation_pct
+from crowdlike.copying import apply_copy
+from crowdlike.audit import log_audit
+from crowdlike.market_data import get_markets
 
 
 st.set_page_config(page_title="Coach", page_icon="🤖", layout="wide")
 apply_ui()
 
 user = require_login(app_name="Crowdlike")
-
-maybe_run_tour(user, current_page="coach")
 ensure_user_schema(user)
 record_visit(user, "coach")
 
 render_sidebar(user, active_page="coach")
 
-nav(active="Coach")
-active_agent = get_active_agent(user)
-hero("🤖 Coach", "A friendly concierge for quests, market moves, and safe testnet checkout.", badge=agent_label(active_agent))
-
-# Reduce demo confusion with a tiny status strip
 _demo = bool_setting("DEMO_MODE", True)
-_wallet_set = bool(((user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}).get("address"))
+wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
+_wallet_set = bool((wallet.get("address") or "").strip())
 _crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
 
+nav(active="Coach")
+active_agent = get_active_agent(user)
 
-# --- Agent Command Console ---
-st.markdown("## Agent command console")
-st.caption("Generate proposals, approve actions, and keep a clean audit trail. Payments always require confirmation.")
+hero("🤖 Coach", "Generate proposals, approve actions, and keep a trustless audit trail.", badge=agent_label(active_agent))
 
-# Agent mode (per-agent, overrides user-level)
+maybe_run_tour(user, "coach")
+
+# Prices (best-effort; improves realistic mirroring)
+WATCHLIST = ["bitcoin","ethereum","solana","matic-network","usd-coin","tether"]
+try:
+    rows = get_markets("usd", WATCHLIST)
+    price_map = {r.id: float(r.current_price) for r in rows}
+except Exception:
+    price_map = {}
+
+# --- Autonomy mode ---
 mode = str(active_agent.get("mode") or "assist")
 mode = st.select_slider(
     "Autonomy mode",
     options=["off", "assist", "auto"],
-    value=mode if mode in ("off","assist","auto") else "assist",
-    help="assist = proposes actions requiring approval. auto = can auto-execute *trades* only (payments still require confirmation).",
+    value=mode if mode in ("off", "assist", "auto") else "assist",
+    help="assist = proposes actions that require approval. auto = may auto-execute *practice trades* when within constraints.",
 )
 active_agent["mode"] = mode
 
-cA, cB, cC = st.columns([1,1,2])
-with cA:
-    if st.button("Generate next action", type="primary", use_container_width=True, disabled=(mode=="off")):
+soft_divider()
+
+# --- Crowd deviation constraint (spec) ---
+pol = user.get("policy") if isinstance(user.get("policy"), dict) else {}
+try:
+    max_dev = float(pol.get("max_deviation_pct", 20.0) or 20.0)
+except Exception:
+    max_dev = 20.0
+max_dev = st.slider("Max crowd deviation (%)", min_value=0.0, max_value=50.0, value=float(max_dev), step=1.0, help="Actions beyond this deviation are constrained by safety/approval logic.")
+pol["max_deviation_pct"] = float(max_dev)
+user["policy"] = pol
+
+cohort = cohort_for_agent(user, active_agent)
+dev, metrics, perc = deviation_pct(user, active_agent, cohort_agents=cohort, price_map=price_map)
+
+c1, c2, c3 = st.columns(3)
+with c1:
+    metric_card("Current deviation", f"{dev:.1f}%", "Average distance from cohort medians (percentile-based)")
+with c2:
+    metric_card("Riskness", f"{metrics['riskness']:.0f}/100", f"Percentile: {perc['riskness']:.0f}")
+with c3:
+    metric_card("Trades/day", f"{metrics['trades_per_day']:.2f}", f"Percentile: {perc['trades_per_day']:.0f}")
+
+if dev > max_dev:
+    callout(
+        "warn",
+        "Out of bounds",
+        "This agent is deviating beyond your configured maximum. Auto-execution is blocked; approvals are required.",
+    )
+
+soft_divider()
+
+# --- Proposal generator ---
+st.markdown("### Proposals")
+st.caption("Proposals are queued for approval. Payments always require manual confirmation in the demo.")
+
+colA, colB = st.columns([1.0, 1.0])
+with colA:
+    if st.button("Generate proposal", type="primary", use_container_width=True):
         p = propose_next_action(user, active_agent)
-        if p:
-            log_event(user, kind="agent", title="Agent proposed an action", details=p.get("title",""), severity="info", agent_id=str(active_agent.get("id")))
-            st.toast("Proposal generated.", icon="🧠")
+        log_event(user, kind="agent", title="New proposal", details=str(p.get("title","")), severity="info", agent_id=str(active_agent.get("id")))
+        grant_xp(user, 20, "Coach", "Generated proposal")
+        st.success(f"Queued: {p.get('title')}")
+        # Auto-execute if permitted
+        if decide_auto_execute(user, active_agent, p):
+            # emulate clicking approve for trades
+            p["status"] = "approved"
+            _run_auto = True
         else:
-            st.toast("Nothing to propose right now.", icon="✅")
+            _run_auto = False
+
+        save_current_user(user)
+        if _run_auto:
+            st.rerun()
+
+with colB:
+    st.write("")
+    st.write("")
+
+# Auto-exec path: if agent is in auto and last proposal is trade and allowed, execute it immediately.
+if mode == "auto" and isinstance(active_agent.get("approvals"), list) and active_agent["approvals"]:
+    latest = active_agent["approvals"][0]
+    if isinstance(latest, dict) and latest.get("status") == "approved" and latest.get("type") == "trade":
+        # execute trade and then remove
+        payload = latest.get("payload") or {}
+        asset = str(payload.get("asset") or "").strip()
+        side = str(payload.get("side","BUY")).upper()
+        try:
+            qty = float(payload.get("qty", 0.0) or 0.0)
+        except Exception:
+            qty = 0.0
+        px = float(price_map.get(asset, 0.0) or 0.0) or 100.0
+        notional = qty * px
+
+        port = active_agent.get("portfolio") if isinstance(active_agent.get("portfolio"), dict) else {}
+        port.setdefault("cash_usdc", 1000.0)
+        port.setdefault("positions", {})
+        port.setdefault("trades", [])
+
+        cash = float(port.get("cash_usdc") or 0.0)
+        positions = port.get("positions") if isinstance(port.get("positions"), dict) else {}
+        cur_qty = float(positions.get(asset, 0.0) or 0.0)
+
+        ok = False
+        if side == "BUY":
+            if cash >= notional:
+                cash -= notional
+                cur_qty += qty
+                ok = True
+        else:
+            if cur_qty >= qty:
+                cash += notional
+                cur_qty -= qty
+                ok = True
+
+        if ok:
+            positions[asset] = cur_qty
+            port["positions"] = {k: v for k, v in positions.items() if abs(float(v or 0.0)) > 1e-12}
+            port["cash_usdc"] = float(cash)
+            trades = port.get("trades") if isinstance(port.get("trades"), list) else []
+            trades.insert(0, {"ts": latest.get("ts"), "asset": asset, "side": side, "qty": qty, "price": px, "notional": round(notional,2), "auto": True})
+            port["trades"] = trades[:200]
+            active_agent["portfolio"] = port
+
+            log_event(user, kind="trade", title=f"Auto trade executed", details=f"{side} {qty} {asset} @ ${px:.2f}", severity="success", agent_id=str(active_agent.get("id")))
+            log_audit(user, kind="auto_execute", msg=f"Auto-executed trade {side} {asset} qty={qty}", agent_id=str(active_agent.get("id")), proposal_id=str(latest.get("id")))
+            log_activity(user, f"Auto trade {side} {asset}", icon="🤖")
+        else:
+            log_event(user, kind="agent", title="Auto trade blocked", details="Insufficient balance/position.", severity="warn", agent_id=str(active_agent.get("id")))
+            log_audit(user, kind="auto_block", msg="Auto trade blocked due to balance/position.", agent_id=str(active_agent.get("id")), proposal_id=str(latest.get("id")), severity="warn")
+
+        # remove proposal regardless to prevent loops
+        try:
+            active_agent["approvals"].remove(latest)
+        except Exception:
+            pass
         save_current_user(user)
         st.rerun()
 
-with cB:
-    if st.button("Clear pending", use_container_width=True):
-        active_agent["approvals"] = []
-        log_event(user, kind="agent", title="Cleared pending proposals", details="", severity="warn", agent_id=str(active_agent.get("id")))
-        save_current_user(user)
-        st.rerun()
+soft_divider()
 
-with cC:
-    st.caption("Tip: in demos, generate 1 proposal, approve it, then show the Activity feed on Home.")
+# --- Pending approvals ---
+st.markdown("### Pending approvals")
+approvals = active_agent.get("approvals") if isinstance(active_agent.get("approvals"), list) else []
+if not approvals:
+    st.info("No pending approvals yet. Generate a proposal above.")
+else:
+    for i, p in enumerate(list(approvals)[:12]):
+        if not isinstance(p, dict):
+            continue
+        with st.container(border=True):
+            st.markdown(f"**{p.get('title','Proposal')}**")
+            st.caption(f"Type: {p.get('type')} · ID: {p.get('id')}")
 
-pending = active_agent.get("approvals") if isinstance(active_agent.get("approvals"), list) else []
-if pending:
-    st.markdown("### Pending approvals")
-    for i, p in enumerate(list(pending)):
-        with st.container():
-            st.markdown(f"**{p.get('title','(proposal)')}**")
-            st.caption(f"{p.get('type','')} · {p.get('ts','')}")
-            col1, col2, col3 = st.columns([1,1,3])
-            with col1:
-                if st.button("Approve", key=f"appr_ok_{i}", use_container_width=True):
-                    # Demo execution
-                    typ = p.get("type")
-                    port = active_agent.get("portfolio") if isinstance(active_agent.get("portfolio"), dict) else {}
-                    cash = float(port.get("cash_usdc", 0.0) or 0.0)
+            cons = p.get("constraints") if isinstance(p.get("constraints"), dict) else {}
+            if cons:
+                st.caption(f"Deviation: {float(cons.get('deviation_pct',0.0)):.1f}% (max {float(cons.get('max_deviation_pct',0.0)):.1f}%)")
+
+            cols = st.columns([1.0, 1.0])
+            with cols[0]:
+                if st.button("Approve", key=f"appr_yes_{i}", use_container_width=True, type="primary"):
+                    typ = str(p.get("type") or "")
+                    payload = p.get("payload") or {}
+
                     if typ == "trade":
-                        payload = p.get("payload") or {}
-                        asset = payload.get("asset","BTC")
-                        side = payload.get("side","BUY")
+                        asset = str(payload.get("asset") or "").strip()
+                        side = str(payload.get("side","BUY")).upper()
                         qty = float(payload.get("qty", 0.0) or 0.0)
-                        px = 100.0  # placeholder demo price index
+                        px = float(price_map.get(asset, 0.0) or 0.0) or 100.0
                         notional = qty * px
-                        pos = port.get("positions") if isinstance(port.get("positions"), dict) else {}
-                        cur_qty = float((pos.get(asset) or {}).get("qty", 0.0) or 0.0)
+
+                        port = active_agent.get("portfolio") if isinstance(active_agent.get("portfolio"), dict) else {}
+                        port.setdefault("cash_usdc", 1000.0)
+                        port.setdefault("positions", {})
+                        port.setdefault("trades", [])
+
+                        cash = float(port.get("cash_usdc") or 0.0)
+                        positions = port.get("positions") if isinstance(port.get("positions"), dict) else {}
+                        cur_qty = float(positions.get(asset, 0.0) or 0.0)
+
+                        ok = False
                         if side == "BUY":
                             if cash >= notional:
                                 cash -= notional
                                 cur_qty += qty
-                            else:
-                                st.warning("Not enough demo cash for this trade.")
+                                ok = True
                         else:
-                            sell_qty = min(cur_qty, qty)
-                            cur_qty -= sell_qty
-                            cash += sell_qty * px
-                        pos[asset] = {"qty": round(cur_qty, 6), "avg": px}
-                        port["positions"] = pos
-                        port["cash_usdc"] = round(cash, 2)
-                        trades = port.get("trades") if isinstance(port.get("trades"), list) else []
-                        trades.insert(0, {"ts": p.get("ts"), "asset": asset, "side": side, "qty": qty, "price": px, "notional": round(notional,2)})
-                        port["trades"] = trades[:200]
-                        active_agent["portfolio"] = port
-                        log_event(user, kind="trade", title=f"Approved {side} {qty} {asset}", details=f"~${notional:.2f} (demo)", severity="success", agent_id=str(active_agent.get("id")))
+                            if cur_qty >= qty:
+                                cash += notional
+                                cur_qty -= qty
+                                ok = True
+
+                        if ok:
+                            positions[asset] = cur_qty
+                            port["positions"] = {k: v for k, v in positions.items() if abs(float(v or 0.0)) > 1e-12}
+                            port["cash_usdc"] = float(cash)
+                            trades = port.get("trades") if isinstance(port.get("trades"), list) else []
+                            trades.insert(0, {"ts": p.get("ts"), "asset": asset, "side": side, "qty": qty, "price": px, "notional": round(notional,2)})
+                            port["trades"] = trades[:200]
+                            active_agent["portfolio"] = port
+
+                            log_event(user, kind="trade", title="Approved trade (demo)", details=f"{side} {qty} {asset} @ ${px:.2f}", severity="success", agent_id=str(active_agent.get("id")))
+                            log_audit(user, kind="approve", msg=f"Approved trade {side} {asset} qty={qty}", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")))
+                            grant_xp(user, 35, "Coach", "Approved trade")
+                        else:
+                            log_event(user, kind="agent", title="Trade blocked", details="Insufficient balance/position.", severity="warn", agent_id=str(active_agent.get("id")))
+                            log_audit(user, kind="approve_block", msg="Trade approval blocked due to balance/position.", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")), severity="warn")
+
                     elif typ == "payment":
-                        amt = float(((p.get("payload") or {}).get("amount_usdc")) or 0.0)
-                        log_event(user, kind="payment", title="Payment requires manual checkout", details=f"Proposed ${amt:.2f} USDC — go to Market → Checkout.", severity="warn", agent_id=str(active_agent.get("id")))
+                        amt = float(((payload or {}).get("amount_usdc")) or 0.0)
+                        log_event(user, kind="payment", title="Payment approved (demo)", details=f"Approved intent for {amt:.2f} USDC. Use Market → Testnet checkout to execute on-chain.", severity="warn", agent_id=str(active_agent.get("id")))
+                        log_audit(user, kind="approve", msg=f"Approved payment intent {amt:.2f} USDC", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")))
+                        grant_xp(user, 20, "Coach", "Approved payment intent")
+
+                    elif typ == "copy":
+                        src_id = str((payload or {}).get("source_agent_id") or "")
+                        mode2 = str((payload or {}).get("mode") or "")
+                        src_agent = None
+                        for a in get_agents(user):
+                            if str(a.get("id")) == src_id:
+                                src_agent = a
+                                break
+                        if not src_agent:
+                            log_event(user, kind="agent", title="Copy failed", details="Source agent not found.", severity="warn", agent_id=str(active_agent.get("id")))
+                            log_audit(user, kind="approve_block", msg="Copy approval failed: source not found.", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")), severity="warn")
+                        else:
+                            ok, msg = apply_copy(user, dest_agent=active_agent, source_agent=src_agent, mode=mode2, price_map=price_map)
+                            if ok:
+                                log_audit(user, kind="approve", msg=f"Approved copy: {mode2} from {src_agent.get('bot_id','')}", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")))
+                                grant_xp(user, 25, "Coach", "Approved copy")
+                            else:
+                                log_audit(user, kind="approve_block", msg=f"Copy blocked: {msg}", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")), severity="warn")
+                                st.warning(msg)
                     else:
                         log_event(user, kind="agent", title="Approved proposal", details=str(p.get("title","")), severity="success", agent_id=str(active_agent.get("id")))
+                        log_audit(user, kind="approve", msg=f"Approved proposal {p.get('title','')}", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")))
+
                     # remove proposal
                     try:
                         active_agent["approvals"].remove(p)
@@ -122,155 +279,22 @@ if pending:
                         pass
                     save_current_user(user)
                     st.rerun()
-            with col2:
+
+            with cols[1]:
                 if st.button("Reject", key=f"appr_no_{i}", use_container_width=True):
                     try:
                         active_agent["approvals"].remove(p)
                     except Exception:
                         pass
                     log_event(user, kind="agent", title="Rejected proposal", details=str(p.get("title","")), severity="info", agent_id=str(active_agent.get("id")))
+                    log_audit(user, kind="reject", msg=f"Rejected proposal {p.get('title','')}", agent_id=str(active_agent.get("id")), proposal_id=str(p.get("id")))
                     save_current_user(user)
                     st.rerun()
-            with col3:
-                st.caption("Approving trades executes a demo portfolio change. Payments route you to Checkout.")
-            soft_divider()
-else:
-    st.caption("No pending proposals. Generate one to show the full agent loop.")
 
 soft_divider()
-event_feed(recent_events(user, agent_id=str(active_agent.get("id")), limit=12), title="Agent activity")
 
-
-
-
-# Simple chat state
-if "coach_messages" not in st.session_state:
-    st.session_state.coach_messages = [
-        {"role": "assistant", "content": "Hey! I’m your Coach. Tell me what you want to do: earn XP, buy a drop, or set up wallet checkout."}
-    ]
-
-for m in st.session_state.coach_messages:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
-
-suggest_cols = st.columns(4)
-with suggest_cols[0]:
-    if st.button("Earn XP fast", key="coach_s1"):
-        st.session_state.coach_messages.append({"role":"user","content":"How do I earn XP fast?"})
-with suggest_cols[1]:
-    if st.button("Set up wallet", key="coach_s2"):
-        st.session_state.coach_messages.append({"role":"user","content":"Help me set up my wallet."})
-with suggest_cols[2]:
-    if st.button("What to buy?", key="coach_s3"):
-        st.session_state.coach_messages.append({"role":"user","content":"What should I buy in the shop?"})
-with suggest_cols[3]:
-    if st.button("Explain testnet", key="coach_s4"):
-        st.session_state.coach_messages.append({"role":"user","content":"What is testnet?"})
-
-prompt = st.chat_input("Message Coach…")
-if prompt:
-    st.session_state.coach_messages.append({"role":"user","content":prompt})
-
-# Generate responses for any new user messages without a following assistant message
-def _answer(text: str) -> str:
-    t = (text or "").lower()
-
-    wallet = (user.get("wallet") or {}).get("address","")
-    streak = compute_streak(user.get("active_days") or [])
-    lvl, xp_in, xp_to_next, pct = xp_progress(int(user.get("xp", 0)))
-    friends = user.get("friends") or []
-    trades = (user.get("portfolio") or {}).get("trades") or []
-    verified = [p for p in (user.get("purchases") or []) if p.get("status") == "verified"]
-
-    if "xp" in t or "earn" in t:
-        return (
-            f"Fast XP plan (today):\n"
-            f"1) Open **Market** (quest)\n"
-            f"2) Do **1 practice trade** (quest)\n"
-            f"3) Add **1 friend** (quest)\n"
-            f"4) Set up your **wallet** (quest)\n"
-            f"5) Verify **1 testnet receipt** for the big XP\n\n"
-            f"You’re Level **{lvl}**, and need **{xp_to_next - xp_in} XP** to level up."
-        )
-
-    if "wallet" in t or "address" in t:
-        if wallet:
-            return (
-                "You’re already connected ✅\n"
-                f"Wallet: `{wallet[:6]}…{wallet[-4:]}`\n\n"
-                "Next: go to **Shop** → pick a USDC item → generate a payment command → paste the receipt ID."
-            )
-        return (
-            "Wallet setup (1 minute):\n"
-            "1) Open **Profile**\n"
-            "2) Paste your **public** address (starts with 0x…)\n"
-            "3) Save\n\n"
-            "Then you can use testnet checkout in Market/Shop."
-        )
-
-    if "testnet" in t:
-        return (
-            "Testnet = practice money, real blockchain.\n"
-            "✅ You can send transactions and get receipts.\n"
-            "❌ The tokens have no real-world value.\n\n"
-            "In Crowdlike we use testnet USDC so you can demo the full checkout + proof flow safely."
-        )
-
-    if "buy" in t or "shop" in t:
-        return (
-            "If you want the clean demo moment: buy a **VIP Drop Ticket (USDC testnet)** in Shop.\n"
-            "It shows: checkout command → receipt → verification → item unlocked.\n\n"
-            "If you just want fast progress: grab a **Neon Profile Badge** with coins."
-        )
-
-    if "stats" in t or "money" in t or "balance" in t:
-        return (
-            f"Here’s your snapshot:\n"
-            f"- Cash (testnet): **${float(user.get('cash_usdc',0.0)):.2f}**\n"
-            f"- Coins: **{int(user.get('coins',0))}**\n"
-            f"- Gems: **{int(user.get('gems',0))}**\n"
-            f"- Friends: **{len(friends)}**\n"
-            f"- Trades: **{len(trades)}**\n"
-            f"- Verified receipts: **{len(verified)}**\n"
-            f"- Streak: **{streak} days**"
-        )
-
-    return (
-        "Got it. Here are the best next clicks:\n"
-        "• **Quests** to earn XP\n"
-        "• **Market** to practice buy/sell\n"
-        "• **Shop** for drops\n"
-        "• **Profile** for wallet + personalization\n\n"
-        "Tell me what vibe you want: speedrun XP, premium checkout demo, or social growth?"
-    )
-
-
-# If last message is user, add assistant response
-msgs = st.session_state.coach_messages
-if msgs and msgs[-1]["role"] == "user":
-    ans = _answer(msgs[-1]["content"])
-    msgs.append({"role":"assistant","content":ans})
-    with st.chat_message("assistant"):
-        st.markdown(ans)
-    grant_xp(user, 15, "Coach", "Asked for guidance")
-    add_notification(user, "Coach gave you a new plan.", "info")
-    log_activity(user, "Chatted with Coach", icon="🤖")
-    save_current_user()
+st.markdown("### Recent events")
+ev = recent_events(user, limit=12)
+event_feed(ev)
 
 save_current_user()
-
-# Guided tutorial (spotlight tour)
-# --- Guided actions (goal-focused) ---
-cols = st.columns(2)
-with cols[0]:
-    if st.button("Generate a plan", key="coach_plan", use_container_width=True):
-        tour_complete_step(2)
-        try:
-            st.session_state.coach_messages.append({"role":"user","content":"Create a clear plan for investing + workflow automation."})
-        except Exception:
-            pass
-with cols[1]:
-    if st.button("Go to Market", key="coach_to_market", use_container_width=True):
-        tour_complete_step(3)
-        tour_complete_step(3)
-        st.switch_page("pages/market.py")

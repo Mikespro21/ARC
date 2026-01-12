@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-"""Single source of truth for pages/navigation.
-
-UX goal:
-- Keep the top nav short (judge-friendly).
-- Put everything else behind an expandable "More" drawer with search.
-"""
+"""Single source of truth for pages/navigation."""
 
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
+from typing import List
 
 
 @dataclass(frozen=True)
@@ -16,15 +11,25 @@ class Page:
     id: str
     label: str
     path: str
-    icon: str = ""
+    icon: str
     group: str = "More"
-    core: bool = False  # appears in top nav
+    core: bool = False
     order: int = 100
     desc: str = ""
+    min_role: str = "human"  # human < bot < admin
+
+
+_ROLE_RANK = {"human": 0, "bot": 1, "admin": 2}
+
+
+def _allowed(role: str, min_role: str) -> bool:
+    r = _ROLE_RANK.get(str(role or "human").lower(), 0)
+    m = _ROLE_RANK.get(str(min_role or "human").lower(), 0)
+    return r >= m
 
 
 PAGES: List[Page] = [
-    # Core
+    # Core (judge-friendly)
     Page("home", "Home", "app.py", "🏠", "Core", True, 1, "Command center"),
     Page("market", "Market", "pages/market.py", "📈", "Core", True, 2, "Practice + testnet checkout"),
     Page("coach", "Coach", "pages/coach.py", "🤖", "Core", True, 3, "Agent console + approvals"),
@@ -32,44 +37,49 @@ PAGES: List[Page] = [
 
     # More
     Page("chat", "Chat", "pages/chat.py", "💬", "More", False, 10, "Per-agent chat"),
-    Page("compare", "Compare", "pages/compare.py", "📊", "More", False, 11, "Profit/return leaderboards"),
+    Page("compare", "Leaderboards", "pages/compare.py", "🏁", "More", False, 11, "Profit+streak scoreboards"),
     Page("safety", "Safety", "pages/safety.py", "🛡️", "Controls", False, 20, "Panic sell + guardrails"),
-    Page("pricing", "Pricing", "pages/pricing.py", "💳", "Controls", False, 21, "Pay-per-day estimator"),
+    Page("pricing", "Pricing", "pages/pricing.py", "💳", "Controls", False, 21, "Per-day estimator"),
     Page("quests", "Quests", "pages/quests.py", "🧩", "Growth", False, 30, "Daily XP/coins"),
     Page("shop", "Shop", "pages/shop.py", "🛒", "Growth", False, 31, "Spend coins on perks"),
     Page("social", "Social", "pages/social.py", "❤️", "Growth", False, 32, "Likes + crowd score"),
     Page("profile", "Profile", "pages/profile.py", "👤", "Settings", False, 40, "Wallet + limits"),
+    Page("admin", "Admin", "pages/admin.py", "🧾", "Settings", False, 41, "Trustless audit log", min_role="bot"),
 ]
 
-def all_pages() -> List[Page]:
-    return sorted(PAGES, key=lambda p: (p.order, p.label))
 
-def core_pages() -> List[Page]:
-    return [p for p in all_pages() if p.core]
+def pages_for_role(role: str) -> List[Page]:
+    role = str(role or "human").lower()
+    return [p for p in PAGES if _allowed(role, p.min_role)]
 
-def non_core_pages() -> List[Page]:
-    return [p for p in all_pages() if not p.core]
 
-def groups() -> List[str]:
-    gs = []
-    for p in all_pages():
+def all_pages(role: str = "human") -> List[Page]:
+    return sorted(pages_for_role(role), key=lambda p: (p.order, p.label))
+
+
+def core_pages(role: str = "human") -> List[Page]:
+    return [p for p in all_pages(role) if p.core]
+
+
+def non_core_pages(role: str = "human") -> List[Page]:
+    return [p for p in all_pages(role) if not p.core]
+
+
+def groups(role: str = "human") -> List[str]:
+    gs: List[str] = []
+    for p in non_core_pages(role):
         if p.group not in gs:
             gs.append(p.group)
     return gs
 
-def search_pages(q: str) -> List[Page]:
+
+def search_pages(q: str, role: str = "human") -> List[Page]:
     q = (q or "").strip().lower()
     if not q:
-        return non_core_pages()
+        return non_core_pages(role)
     out: List[Page] = []
-    for p in non_core_pages():
+    for p in non_core_pages(role):
         hay = f"{p.label} {p.desc} {p.group}".lower()
         if q in hay:
             out.append(p)
     return out
-
-def get_page_by_id(page_id: str) -> Optional[Page]:
-    for p in PAGES:
-        if p.id == page_id:
-            return p
-    return None

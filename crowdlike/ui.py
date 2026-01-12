@@ -475,28 +475,27 @@ def button_style(key: str, variant: str) -> None:
 
 
 def nav(active: str = "Home") -> None:
-    """Top nav with a short row + expandable 'More' drawer.
-
-    UX goals:
-    - Judges see only the important pages.
-    - Everything else is discoverable via a searchable drawer.
-    - The drawer is scrollable so it never overflows.
-    """
+    """Top nav with a short row + expandable 'More' drawer."""
+    from crowdlike.auth import current_user
     from crowdlike.registry import core_pages, search_pages, groups
 
-    core = core_pages()
-    # Core buttons + a More button
+    u = current_user() or {}
+    role = str((u or {}).get("role") or "human").lower()
+
+    core = core_pages(role)
     cols = st.columns(len(core) + 1)
 
     for i, p in enumerate(core):
         with cols[i]:
-            button_style(f"nav_{p.id}", "active" if p.label == active else "white")
-            if st.button(f"{p.icon} {p.label}".strip(), key=f"nav_{p.id}", use_container_width=True):
-                st.switch_page(p.path)
+            label = f"{p.icon} {p.label}"
+            if p.label == active:
+                st.button(label, disabled=True, use_container_width=True)
+            else:
+                if st.button(label, use_container_width=True):
+                    st.switch_page(p.path)
 
     # Expandable drawer
     with cols[-1]:
-        # Prefer popover if available, else expander.
         label = "⋯ More"
         try:
             pop = st.popover(label, use_container_width=True)
@@ -506,24 +505,21 @@ def nav(active: str = "Home") -> None:
         with pop:
             st.caption("Search and jump to any page.")
             q = st.text_input("Search pages", key="nav_search", placeholder="e.g., Pricing, Safety, Social…")
-            pages = search_pages(q)
+            pages = search_pages(q, role)
 
-            # Grouped + scrollable list
-            st.markdown(
-                '<div style="max-height:320px; overflow-y:auto; padding-right:6px;">',
-                unsafe_allow_html=True,
-            )
+            # Grouped + scrollable
+            st.markdown('<div style="max-height:360px; overflow-y:auto; padding-right:6px;">', unsafe_allow_html=True)
             last_group = None
             for p in pages:
                 if last_group != p.group:
-                    st.markdown(f"**{p.group}**")
+                    st.markdown(f"#### {p.group}")
                     last_group = p.group
-                button_style(f"nav_more_{p.id}", "active" if p.label == active else "ghost")
-                if st.button(f"{p.icon} {p.label}".strip(), key=f"nav_more_{p.id}", use_container_width=True):
+
+                lbl = f"{p.icon} {p.label}"
+                if st.button(lbl, key=f"nav_more_{p.id}", use_container_width=True):
                     st.switch_page(p.path)
             st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div style="margin-top:0.35rem; margin-bottom:0.55rem;"></div>', unsafe_allow_html=True)
 
 def bg_ratio() -> dict:
     return dict(_BG_RATIO)

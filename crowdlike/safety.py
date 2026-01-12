@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime as _dt
 from typing import Any, Dict, Tuple
 
-from .performance import portfolio_value, ensure_daily_snapshot
+from .performance import portfolio_value, ensure_daily_snapshot, _find_value_on_or_before
 
 
 def _now_iso() -> str:
@@ -46,7 +46,6 @@ def safety_exit(agent: Dict[str, Any], price_map: Dict[str, float], reason: str)
         positions[cid] = 0.0
 
     port["cash_usdc"] = float(cash)
-    # Remove near-zero positions to keep UI clean
     port["positions"] = {k: v for k, v in positions.items() if abs(float(v or 0.0)) > 1e-12}
 
     s = agent.setdefault("safety", {})
@@ -61,10 +60,12 @@ def safety_exit(agent: Dict[str, Any], price_map: Dict[str, float], reason: str)
 
 
 def check_safety_triggers(agent: Dict[str, Any], price_map: Dict[str, float]) -> Tuple[bool, str]:
-    """Check drawdown/fraud/panic triggers; executes exit when triggered."""
+    """Check drawdown/daily loss/fraud/panic triggers; executes exit when triggered."""
     s = agent.get("safety") if isinstance(agent.get("safety"), dict) else {}
-    port = agent.get("portfolio") if isinstance(agent.get("portfolio"), dict) else {}
+    if not bool(s.get("enabled", True)):
+        return False, "Safety exits disabled."
 
+    port = agent.get("portfolio") if isinstance(agent.get("portfolio"), dict) else {}
     cur_v = portfolio_value(port, price_map)
 
     # Maintain peak for drawdown logic
@@ -83,11 +84,26 @@ def check_safety_triggers(agent: Dict[str, Any], price_map: Dict[str, float]) ->
     if bool(s.get("fraud_alert")):
         return safety_exit(agent, price_map, "Fraud alert")
 
-    # Drawdown trigger
+    # Daily loss trigger (USDC)
     try:
-        max_dd = float(s.get("max_drawdown_pct", 25.0) or 25.0)
+        max_daily_loss = float(s.get("max_daily_loss_usdc", 50.0) or 0.0)
     except Exception:
-        max_dd = 25.0
+        max_daily_loss = 0.0
+    if max_daily_loss > 0:
+        hist = agent.get("value_history")
+        if isinstance(hist, list) and hist:
+            yesterday = _dt.date.today() - _dt.timedelta(days=1)
+            base = _find_value_on_or_before(hist, yesterday)
+            if base is not None:
+                loss = float(base) - float(cur_v)
+                if loss >= max_daily_loss:
+                    return safety_exit(agent, price_map, f"Auto safety exit (daily loss ${loss:.2f} ≥ ${max_daily_loss:.2f})")
+
+    # Drawdown trigger (%)
+    try:
+        max_dd = float(s.get("max_drawdown_pct", 25.0) or 0.0)
+    except Exception:
+        max_dd = 0.0
 
     if peak_f and max_dd > 0:
         dd = (peak_f - cur_v) / peak_f * 100.0

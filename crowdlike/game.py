@@ -33,6 +33,15 @@ def ensure_user_schema(user: Dict[str, Any]) -> Dict[str, Any]:
     user.setdefault("username", "Member")
     user.setdefault("avatar", "🧊")
     user.setdefault("bio", "")
+
+    # Role controls visibility (human vs bot/admin)
+    try:
+        from .settings import get_setting
+        user.setdefault("role", str(get_setting("ROLE", "human") or "human"))
+    except Exception:
+        user.setdefault("role", "human")
+    user["role"] = str(user.get("role") or "human").lower()
+
     user.setdefault("wallet", {})
     user["wallet"].setdefault("address", "")
     user["wallet"].setdefault("rpc_url", "https://rpc.testnet.arc.network")
@@ -58,7 +67,13 @@ def ensure_user_schema(user: Dict[str, Any]) -> Dict[str, Any]:
     user.setdefault("purchases", [])  # [{ts,item_id,name,price,currency,tx_hash,status}]
 
     # Safety rails / payment policy (used by checkout)
-    user.setdefault("policy", {"risk": 25, "max_per_tx_usdc": 0.10, "daily_cap_usdc": 0.50, "cooldown_s": 15})
+    user.setdefault("policy", {"risk": 25, "max_per_tx_usdc": 0.10, "daily_cap_usdc": 0.50, "cooldown_s": 15, "max_deviation_pct": 20.0})
+
+    # Safety exits (global defaults; agents can override)
+    user.setdefault("safety_settings", {"enabled": True, "max_daily_loss_usdc": 50.0, "max_drawdown_pct": 25.0, "fraud_anomaly_enabled": True})
+    if not isinstance(user.get("safety_settings"), dict):
+        user["safety_settings"] = {"enabled": True}
+
 
     # Crowd signals (demo). Score should feel earned, not magical.
     user.setdefault("crowd", {"score": 50.0, "likes_received": 0, "likes_given": 0})
