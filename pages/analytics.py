@@ -26,7 +26,7 @@ _wallet_set = bool((wallet.get("address") or "").strip())
 _crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
 
-nav(active="Analytics")
+nav(active="Launch App")
 flow_banner(user, active="Review performance")
 
 hero("📊 Analytics", "Make the demo feel real: see performance, risk, autonomy behavior, and run reports in one place.")

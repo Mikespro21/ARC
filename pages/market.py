@@ -37,7 +37,7 @@ render_sidebar(user, active_page="market")
 
 active_agent = get_active_agent(user)
 
-nav(active="Market")
+nav(active="Launch App")
 flow_banner(user, active="Verify a receipt")
 
 hero("📈 Market", "Live prices, practice trading, and a judge-friendly USDC testnet checkout flow.", badge=agent_label(active_agent))

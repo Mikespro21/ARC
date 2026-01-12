@@ -28,27 +28,40 @@ def _allowed(role: str, min_role: str) -> bool:
     return r >= m
 
 
+
 PAGES: List[Page] = [
-    # Core (judge-friendly)
-    Page("home", "Home", "app.py", "🏠", "Core", True, 1, "Command center"),
-    Page("journey", "Journey", "pages/journey.py", "🧭", "Core", False, 1_5, "Guided setup wizard"),
-    Page("market", "Market", "pages/market.py", "📈", "Core", True, 2, "Practice + testnet checkout"),
-    Page("coach", "Coach", "pages/coach.py", "🤖", "Core", True, 3, "Agent console + approvals"),
-    Page("agents", "Agents", "pages/agents.py", "🧠", "Core", True, 4, "Create & manage agents"),
+    # Website (official)
+    Page("home", "Home", "app.py", "🏠", "Website", True, 1, "Official landing page"),
+    Page("product", "Product", "pages/product.py", "✨", "Website", True, 2, "What Crowdlike is"),
+    Page("pricing", "Pricing", "pages/pricing.py", "💳", "Website", True, 3, "Per-day estimator"),
+    Page("docs", "Docs", "pages/docs.py", "📚", "Website", True, 4, "Quickstart + FAQ"),
+    Page("dashboard", "Launch App", "pages/dashboard.py", "🚀", "Website", True, 5, "App dashboard"),
 
-    # More
-    Page("chat", "Chat", "pages/chat.py", "💬", "More", False, 10, "Per-agent chat"),
-    Page("compare", "Leaderboards", "pages/compare.py", "🏁", "More", False, 11, "Profit+streak scoreboards"),
-    Page("analytics", "Analytics", "pages/analytics.py", "📊", "Core", False, 12, "Runs + risk + portfolio metrics"),
+    # App (workflow)
+    Page("journey", "Journey", "pages/journey.py", "🧭", "App", False, 10, "Guided setup wizard"),
+    Page("agents", "Agents", "pages/agents.py", "🧠", "App", False, 11, "Create & manage agents"),
+    Page("coach", "Coach", "pages/coach.py", "🤖", "App", False, 12, "Runs + approvals"),
+    Page("market", "Market", "pages/market.py", "📈", "App", False, 13, "Practice + checkout"),
+    Page("analytics", "Analytics", "pages/analytics.py", "📊", "App", False, 14, "Portfolio metrics"),
+    Page("compare", "Leaderboards", "pages/compare.py", "🏁", "App", False, 15, "Profit+streak scoreboards"),
+    Page("profile", "Profile", "pages/profile.py", "👤", "App", False, 16, "Wallet + limits"),
 
-    Page("safety", "Safety", "pages/safety.py", "🛡️", "Controls", False, 20, "Panic sell + guardrails"),
-    Page("pricing", "Pricing", "pages/pricing.py", "💳", "Controls", False, 21, "Per-day estimator"),
-    Page("quests", "Quests", "pages/quests.py", "🧩", "Growth", False, 30, "Daily XP/coins"),
-    Page("shop", "Shop", "pages/shop.py", "🛒", "Growth", False, 31, "Spend coins on perks"),
-    Page("social", "Social", "pages/social.py", "❤️", "Growth", False, 32, "Likes + crowd score"),
-    Page("profile", "Profile", "pages/profile.py", "👤", "Settings", False, 40, "Wallet + limits"),
-    Page("admin", "Admin", "pages/admin.py", "🧾", "Settings", False, 41, "Trustless audit log", min_role="bot"),
+    # Engagement
+    Page("quests", "Quests", "pages/quests.py", "🧩", "Engagement", False, 30, "Daily XP/coins"),
+    Page("shop", "Shop", "pages/shop.py", "🛒", "Engagement", False, 31, "Spend coins on perks"),
+    Page("social", "Social", "pages/social.py", "❤️", "Engagement", False, 32, "Likes + crowd score"),
+    Page("chat", "Chat", "pages/chat.py", "💬", "Engagement", False, 33, "Per-agent chat"),
+
+    # Controls
+    Page("safety", "Safety", "pages/safety.py", "🛡️", "Controls", False, 40, "Panic sell + guardrails"),
+
+    # Company
+    Page("company", "Company", "pages/company.py", "🏢", "Website", False, 50, "About"),
+
+    # Admin
+    Page("admin", "Admin", "pages/admin.py", "🧾", "Settings", False, 90, "Trustless audit log", min_role="bot"),
 ]
+
 
 
 def pages_for_role(role: str) -> List[Page]:

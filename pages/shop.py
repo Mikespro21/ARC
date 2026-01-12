@@ -24,7 +24,7 @@ wallet_set = bool((wallet.get("address") or "").strip())
 crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 score = float(crowd.get("score", 50.0) or 50.0)
 
-nav(active="Shop")
+nav(active="Launch App")
 hero("🛍️ Shop", "Upgrades, perks, and judge-friendly checkouts.", badge="Store")
 
 status_bar(wallet_set=wallet_set, demo_mode=_demo, crowd_score=score)

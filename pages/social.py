@@ -25,7 +25,7 @@ _demo = bool_setting("DEMO_MODE", True)
 wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
 wallet_set = bool((wallet.get("address") or "").strip())
 
-nav(active="Social")
+nav(active="Launch App")
 hero("🫶 Social", "Likes are the crowd feedback loop — they gently influence what your agent can do.", badge="Crowd")
 
 crowd = user.setdefault("crowd", {"score": 50.0, "likes_received": 0, "likes_given": 0})

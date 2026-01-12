@@ -39,3 +39,9 @@ streamlit run app.py
 
 - This is a demo: trades and payments are mocked or practice-mode unless you wire a real Arc/Circle flow.
 - Keep secrets out of git. If you need them, use `.streamlit/secrets.toml` locally.
+
+
+## v1.2 — Official website flow
+
+- Home/Product/Pricing/Docs render as a website (no login).
+- Launch App routes into the authenticated demo dashboard.

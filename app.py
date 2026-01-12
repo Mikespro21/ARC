@@ -1,204 +1,77 @@
 import streamlit as st
 
-from crowdlike.settings import bool_setting
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, xp_bar, button_style, status_bar, metric_card, callout, event_feed
-from crowdlike.tour import maybe_run_tour
-from crowdlike.auth import require_login, save_current_user, logout
-from crowdlike.game import xp_progress, compute_streak, record_visit, ensure_user_schema
-from crowdlike.agents import get_active_agent, get_agents, agent_label
-from crowdlike.layout import render_sidebar
-from crowdlike.version import VERSION
-from crowdlike.events import recent_events
+from crowdlike.ui import apply_ui, nav, soft_divider, callout
+from crowdlike.site import site_hero, site_section, site_footer, site_header
 
 
 st.set_page_config(page_title="Crowdlike", page_icon="🫧", layout="wide")
 apply_ui()
 
-user = require_login(app_name="Crowdlike")
-
-maybe_run_tour(user, current_page="home")
-ensure_user_schema(user)
-record_visit(user, "home")
-save_current_user()
-
-_demo = bool_setting("DEMO_MODE", True)
-
-render_sidebar(user, active_page="home")
-
+# Website Home (no login required)
+site_header(active="Home")
 nav(active="Home")
 
-lvl, xp_in, xp_to_next, pct = xp_progress(int(user.get("xp", 0)))
-streak = compute_streak(user.get("active_days") or [])
-
-crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
-crowd_score = float(crowd.get("score", 50.0) or 50.0)
-
-wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
-wallet_addr = (wallet.get("address") or "").strip()
-wallet_short = (wallet_addr[:6] + "…" + wallet_addr[-4:]) if wallet_addr else "Not set"
-
-active_agent = get_active_agent(user)
-agents = get_agents(user)
-
-hero(
-    f"{user.get('avatar','🧊')}  Welcome, {user.get('username','Member')}",
-    f"Crowdlike v{VERSION} · premium agent console with autonomy, run reports, and analytics.",
-    badge=f"{agent_label(active_agent)} · Level {lvl} · Streak {streak}d",
+site_hero(
+    kicker="Crowdlike v1",
+    title="Agentic commerce that stays inside the crowd.",
+    subtitle=(
+        "Crowdlike helps multiple AI agents transact safely on-chain with user-set risk, limits, "
+        "and an explicit crowd-deviation constraint—so autonomy feels powerful without feeling reckless."
+    ),
 )
 
-status_bar(wallet_set=bool(wallet_addr), demo_mode=_demo, crowd_score=crowd_score)
+soft_divider()
 
-# --- Snapshot ---
-c1, c2, c3, c4 = st.columns(4)
+c1, c2, c3 = st.columns(3, gap="large")
 with c1:
-    port = active_agent.get("portfolio") if isinstance(active_agent.get("portfolio"), dict) else {}
-    cash = float(port.get("cash_usdc", 0.0) or 0.0)
-    metric_card("Active cash", f"${cash:.2f}", "Agent portfolio", accent="purple")
+    site_section(
+        icon="🧠",
+        title="Many agents, separate portfolios",
+        body="Run multiple specialized agents in parallel. Each agent has its own portfolio, activity, and run reports.",
+    )
 with c2:
-    metric_card("Agents", f"{len(agents)}", "Separate portfolios", accent="blue")
+    site_section(
+        icon="🛡️",
+        title="Safety and deviation guardrails",
+        body="Max deviation, max daily loss, drawdown exits, and approvals make the autonomy ladder predictable and controllable.",
+    )
 with c3:
-    metric_card("Crowd Score", f"{crowd_score:.0f}", "Gently boosts limits", accent="blue")
-with c4:
-    metric_card("Wallet", wallet_short, "Public address", accent="none")
-
-xp_bar(pct, left=f"Level {lvl}", right=f"{xp_in}/{xp_to_next} XP")
-soft_divider()
-
-# --- Quickstart (judge-friendly) ---
-has_verified = any((p or {}).get("status") == "verified" for p in (user.get("purchases") or []))
-limits_set = isinstance(user.get("policy"), dict) and any(k in user["policy"] for k in ("max_per_tx_usdc", "daily_cap_usdc", "cooldown_s"))
-wallet_set = bool(wallet_addr)
-
-st.markdown(
-    '<div class="card card-strong">'
-    '<div style="font-weight:860; font-size:1.05rem">Quickstart (fastest demo loop)</div>'
-    '<div style="color:var(--muted);margin-top:4px">'
-    'Set wallet → set limits → run a testnet checkout → paste receipt (tx hash) → verified.'
-    '</div>'
-    '</div>',
-    unsafe_allow_html=True,
-)
-
-q1, q2, q3 = st.columns(3)
-with q1:
-    st.write(("✅ " if wallet_set else "⬜ ") + "Wallet added")
-    st.caption("Profile → paste your public 0x address")
-with q2:
-    st.write(("✅ " if limits_set else "⬜ ") + "Limits set")
-    st.caption("Profile → Autonomy & Limits")
-with q3:
-    st.write(("✅ " if has_verified else "⬜ ") + "Receipt verified")
-    st.caption("Market → Testnet checkout")
-
-soft_divider()
-
-
-# Journey CTA
-button_style('go_journey', 'ghost')
-if st.button('🧭 Open Journey wizard', key='go_journey', use_container_width=True):
-    st.switch_page('pages/journey.py')
-
-# Two clear CTAs (keep it simple)
-cta1, cta2, cta3 = st.columns([1.2, 1.0, 1.0])
-with cta1:
-    button_style("home_cta_checkout", "purple")
-    label = "Do a testnet checkout"
-    if not wallet_set:
-        label = "Add wallet (required)"
-    if st.button(label, key="home_cta_checkout", use_container_width=True):
-        if not wallet_set:
-            st.switch_page("pages/profile.py")
-        else:
-            st.session_state["checkout_offer_id"] = "vip_pass"
-            st.session_state["checkout_step"] = 1
-            st.switch_page("pages/market.py")
-with cta2:
-    button_style("home_cta_agents", "blue")
-    if st.button("Manage agents", key="home_cta_agents", use_container_width=True):
-        st.switch_page("pages/agents.py")
-with cta3:
-    button_style("home_cta_compare", "slate")
-    if st.button("Compare performance", key="home_cta_compare", use_container_width=True):
-        st.switch_page("pages/compare.py")
-
-soft_divider()
-
-# --- Command Center: approvals + activity ---
-soft_divider()
-left, right = st.columns([2, 1])
-
-with left:
-    event_feed(recent_events(user, agent_id=str(active_agent.get("id")), limit=18), title="Recent activity")
-
-with right:
-    st.markdown("### Next actions")
-    pending = active_agent.get("approvals") if isinstance(active_agent.get("approvals"), list) else []
-    st.metric("Pending approvals", str(len(pending)))
-    st.caption("Use Coach to generate proposals and approve actions.")
-    if st.button("Open Coach", type="primary", use_container_width=True):
-        st.switch_page("pages/coach.py")
-    st.markdown("")
-    st.markdown("### Demo readiness")
-    r = {"wallet": bool(wallet_addr), "agents": bool(get_agents(user))}
-    st.checkbox("Wallet set", value=r["wallet"], disabled=True)
-    st.checkbox("At least 1 agent", value=r["agents"], disabled=True)
-    st.checkbox("1 action approved", value=any((e.get("kind")=="trade" and e.get("severity")=="success") for e in (user.get("events") or [])), disabled=True)
-
-tab1, tab2, tab3 = st.tabs(["Explore", "Activity", "Updates"])
-
-with tab1:
-    g1, g2, g3 = st.columns(3)
-    with g1:
-        st.markdown('<div class="card"><div style="font-weight:820">Market</div><div style="color:var(--muted);margin-top:4px">Prices, practice trading, and on-chain checkout.</div></div>', unsafe_allow_html=True)
-        if st.button("Open Market", key="go_market", use_container_width=True):
-            st.switch_page("pages/market.py")
-    with g2:
-        st.markdown('<div class="card"><div style="font-weight:820">Shop</div><div style="color:var(--muted);margin-top:4px">Spend coins or trigger checkout from perks.</div></div>', unsafe_allow_html=True)
-        if st.button("Open Shop", key="go_shop", use_container_width=True):
-            st.switch_page("pages/shop.py")
-    with g3:
-        st.markdown('<div class="card"><div style="font-weight:820">Social</div><div style="color:var(--muted);margin-top:4px">Likes → Crowd Score → smoother autonomy.</div></div>', unsafe_allow_html=True)
-        if st.button("Open Social", key="go_social", use_container_width=True):
-            st.switch_page("pages/social.py")
-
-    st.write("")
-    callout(
-        "info",
-        "Tip",
-        "For judges: the on-chain proof is the tx hash. You can always open ArcScan from Market → Verify.",
+    site_section(
+        icon="🏁",
+        title="Leaderboards with streak scoring",
+        body="Track daily/weekly/monthly/yearly performance with a simple score that rewards profit and consistency.",
     )
 
-with tab2:
-    feed = user.get("activity") or []
-    if not feed:
-        callout("info", "No activity yet", "Complete one quest to populate your activity feed.")
-    else:
-        for item in feed[:10]:
-            st.markdown(
-                f'<div class="card" style="margin-bottom:0.55rem">'
-                f'<div style="display:flex;gap:0.65rem;align-items:flex-start">'
-                f'<div style="font-size:1.10rem;opacity:0.85">{item.get("icon","")}</div>'
-                f'<div><div style="font-weight:760">{item.get("text","")}</div>'
-                f'<div style="color:var(--muted);font-size:0.82rem">{item.get("ts","")}</div></div>'
-                f'</div></div>',
-                unsafe_allow_html=True,
-            )
+soft_divider()
 
-with tab3:
-    notes = user.get("notifications") or []
-    if not notes:
-        callout("good", "All caught up", "No new updates.")
-    else:
-        for n in notes[:10]:
-            kind = n.get("kind", "info")
-            text = n.get("text", "")
-            if kind == "success":
-                st.success(text)
-            elif kind == "warning":
-                st.warning(text)
-            elif kind == "error":
-                st.error(text)
-            else:
-                st.info(text)
+left, right = st.columns([1.2, 1.0], gap="large")
+with left:
+    callout(
+        "How it works",
+        "**Launch the app**, create agents, set a wallet and limits, then run cycles from Coach. "
+        "Crowdlike produces run reports and analytics, while enforcing your safety and crowd-deviation constraints.",
+        tone="muted",
+    )
+with right:
+    st.markdown("### Start here")
+    st.write("If you're demoing or evaluating, the fastest path is the guided Journey.")
+    if st.button("🚀 Launch App", key="home_launch_app", use_container_width=True):
+        st.switch_page("pages/dashboard.py")
+    if st.button("🧭 Guided Journey", key="home_go_journey", use_container_width=True):
+        st.switch_page("pages/journey.py")
+    if st.button("📚 Read the Docs", key="home_go_docs", use_container_width=True):
+        st.switch_page("pages/docs.py")
 
-save_current_user()
+soft_divider()
+
+site_section(
+    icon="✨",
+    title="Built for competition demos",
+    body=(
+        "A crisp user flow, clear risk controls, and a mission-control Coach page "
+        "let judges understand the product in minutes."
+    ),
+    full_width=True,
+)
+
+site_footer()

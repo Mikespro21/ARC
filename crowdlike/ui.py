@@ -334,6 +334,120 @@ def apply_ui() -> None:
     }
     /* Reduce visual noise */
     .stCaption { color: var(--muted) !important; }
+
+    /* --- Website layout (official) --- */
+    .site-header{
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 16px 14px 10px 14px;
+        margin-bottom: 6px;
+        background: rgba(255,255,255,0.70);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(148,163,184,0.18);
+        border-radius: 18px;
+        box-shadow: var(--shadow-soft);
+    }
+    .site-logo{
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        font-size: 18px;
+        color: rgba(2,6,23,0.92);
+    }
+    .site-logo span{ margin-left: 6px; }
+    .site-tag{
+        margin-top: 2px;
+        font-size: 12px;
+        color: rgba(71,85,105,0.75);
+    }
+    .site-links{
+        margin-top: 12px;
+        font-size: 13px;
+        color: rgba(71,85,105,0.75);
+        text-align: center;
+    }
+    .site-hero{
+        padding: 34px 24px 22px 24px;
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,184,0.18);
+        background: rgba(255,255,255,0.84);
+        box-shadow: var(--shadow-soft);
+    }
+    .site-kicker{
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: rgba(100,116,139,0.85);
+        margin-bottom: 10px;
+    }
+    .site-title{
+        font-size: 44px;
+        line-height: 1.05;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        color: rgba(2,6,23,0.93);
+        margin-bottom: 12px;
+    }
+    .site-subtitle{
+        font-size: 16px;
+        line-height: 1.5;
+        color: rgba(30,41,59,0.78);
+        max-width: 72ch;
+    }
+    .site-section{
+        padding: 18px 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(148,163,184,0.18);
+        background: rgba(255,255,255,0.82);
+        box-shadow: var(--shadow-soft);
+        min-height: 140px;
+    }
+    .site-section-full{ min-height: auto; }
+    .site-section-icon{ font-size: 20px; margin-bottom: 10px; }
+    .site-section-title{
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        margin-bottom: 6px;
+        color: rgba(2,6,23,0.90);
+    }
+    .site-section-body{
+        color: rgba(30,41,59,0.78);
+        line-height: 1.5;
+        font-size: 14px;
+    }
+    .site-footer{
+        margin-top: 34px;
+        padding: 22px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(148,163,184,0.18);
+        background: rgba(255,255,255,0.82);
+        box-shadow: var(--shadow-soft);
+    }
+    .site-footer-grid{
+        display: grid;
+        grid-template-columns: 1.6fr 1fr 1fr;
+        gap: 16px;
+    }
+    .site-footer-title{ font-weight: 800; margin-bottom: 6px; }
+    .site-footer-muted{ color: rgba(71,85,105,0.75); font-size: 13px; line-height: 1.4; }
+    .site-footer-links{ color: rgba(71,85,105,0.78); font-size: 13px; }
+    .site-footer-bottom{
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(148,163,184,0.16);
+        color: rgba(100,116,139,0.70);
+        font-size: 12px;
+    }
+
+    /* --- Global spacing: reduce clustering --- */
+    div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stButton"]){
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+    .stButton>button{
+        padding: 12px 14px !important;
+        border-radius: 14px !important;
+    }
 </style>
     """
     st.markdown(css, unsafe_allow_html=True)

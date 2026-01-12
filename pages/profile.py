@@ -42,7 +42,7 @@ record_visit(user, "profile")
 render_sidebar(user, active_page="profile")
 save_current_user()
 
-nav(active="Profile")
+nav(active="Launch App")
 flow_banner(user, active="Add your wallet")
 
 hero("🧑‍🚀 Profile", "Identity, wallet, and autonomy settings.", badge="Settings")

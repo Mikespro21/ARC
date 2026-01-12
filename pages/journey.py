@@ -18,7 +18,7 @@ record_visit(user, "journey")
 save_current_user()
 
 render_sidebar(user, active_page="journey")
-nav(active="Journey")
+nav(active="Launch App")
 
 hero("🧭 Journey", f"Your guided setup path · Crowdlike v{VERSION}", badge="Product flow wizard")
 
