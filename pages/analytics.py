@@ -10,6 +10,7 @@ from crowdlike.market_data import get_markets
 from crowdlike.analytics import agents_table, compute_agent_metrics
 
 
+from crowdlike.flow import flow_banner
 st.set_page_config(page_title="Analytics • Crowdlike", page_icon="📊", layout="wide")
 apply_ui()
 
@@ -26,6 +27,8 @@ _crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
 
 nav(active="Analytics")
+flow_banner(user, active="Review performance")
+
 hero("📊 Analytics", "Make the demo feel real: see performance, risk, autonomy behavior, and run reports in one place.")
 
 agents = get_agents(user)
@@ -83,6 +86,7 @@ with k3:
     metric_card("Crowd deviation", f"{float(m.get('deviation_pct',0.0) or 0.0):.1f}%", "Constraint signal", accent="none")
 with k4:
     metric_card("Autonomy", str(m.get("mode") or "assist"), f"Runs {int(m.get('runs_total',0) or 0)}", accent="none")
+
 
 soft_divider()
 

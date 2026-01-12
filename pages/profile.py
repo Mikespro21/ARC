@@ -31,6 +31,7 @@ def _is_safe_public_https_url(url: str) -> bool:
     return True
 
 
+from crowdlike.flow import flow_banner
 st.set_page_config(page_title="Profile", page_icon="🧑‍🚀", layout="wide")
 apply_ui()
 
@@ -42,6 +43,8 @@ render_sidebar(user, active_page="profile")
 save_current_user()
 
 nav(active="Profile")
+flow_banner(user, active="Add your wallet")
+
 hero("🧑‍🚀 Profile", "Identity, wallet, and autonomy settings.", badge="Settings")
 
 wallet = user.setdefault("wallet", {}) if isinstance(user.get("wallet"), dict) else {}

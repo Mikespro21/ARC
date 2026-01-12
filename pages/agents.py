@@ -21,6 +21,7 @@ from crowdlike.events import log_event
 
 
 
+from crowdlike.flow import flow_banner
 st.set_page_config(page_title="Agents", page_icon="🤖", layout="wide")
 apply_ui()
 
@@ -37,6 +38,8 @@ crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(crowd.get("score", 50.0) or 50.0))
 
 nav(active="Agents")
+flow_banner(user, active="Create an agent")
+
 hero("🤖 Agents", "Create agents, give each one a separate portfolio + chat history, then compare them by profit and return.", badge="Multi‑agent")
 
 agents = get_agents(user)
@@ -89,6 +92,7 @@ with st.expander("➕ Create a new agent", expanded=False):
         save_current_user()
         st.success("Created ✅")
         st.rerun()
+
 
 soft_divider()
 

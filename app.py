@@ -92,6 +92,12 @@ with q3:
 
 soft_divider()
 
+
+# Journey CTA
+button_style('go_journey', 'ghost')
+if st.button('🧭 Open Journey wizard', key='go_journey', use_container_width=True):
+    st.switch_page('pages/journey.py')
+
 # Two clear CTAs (keep it simple)
 cta1, cta2, cta3 = st.columns([1.2, 1.0, 1.0])
 with cta1:

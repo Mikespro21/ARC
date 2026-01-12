@@ -14,6 +14,7 @@ import streamlit as st
 from crowdlike.agents import agent_label, get_agents, get_active_agent, set_active_agent
 from crowdlike.auth import logout, save_current_user
 from crowdlike.ui import soft_divider, callout, button_style, pills
+from crowdlike.flow import sidebar_flow_card
 from crowdlike.version import VERSION
 
 

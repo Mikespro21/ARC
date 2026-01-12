@@ -31,6 +31,7 @@ def _allowed(role: str, min_role: str) -> bool:
 PAGES: List[Page] = [
     # Core (judge-friendly)
     Page("home", "Home", "app.py", "🏠", "Core", True, 1, "Command center"),
+    Page("journey", "Journey", "pages/journey.py", "🧭", "Core", False, 1_5, "Guided setup wizard"),
     Page("market", "Market", "pages/market.py", "📈", "Core", True, 2, "Practice + testnet checkout"),
     Page("coach", "Coach", "pages/coach.py", "🤖", "Core", True, 3, "Agent console + approvals"),
     Page("agents", "Agents", "pages/agents.py", "🧠", "Core", True, 4, "Create & manage agents"),

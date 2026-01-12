@@ -23,6 +23,7 @@ from crowdlike.arc import (
     DEFAULT_RPC_URL,
 )
 
+from crowdlike.flow import flow_banner
 st.set_page_config(page_title="Market", page_icon="📈", layout="wide")
 apply_ui()
 
@@ -37,6 +38,8 @@ render_sidebar(user, active_page="market")
 active_agent = get_active_agent(user)
 
 nav(active="Market")
+flow_banner(user, active="Verify a receipt")
+
 hero("📈 Market", "Live prices, practice trading, and a judge-friendly USDC testnet checkout flow.", badge=agent_label(active_agent))
 
 _demo = bool_setting("DEMO_MODE", True)
@@ -100,7 +103,8 @@ with tab_live:
                     unsafe_allow_html=True,
                 )
 
-        soft_divider()
+    soft_divider()
+    if rows:
         coin_id = st.selectbox("View a 7‑day chart", [r.id for r in rows], key="mkt_chart_coin")
         try:
             pts = get_market_chart_7d(coin_id, "usd")

@@ -27,6 +27,7 @@ from crowdlike.audit import log_audit
 from crowdlike.market_data import get_markets
 
 
+from crowdlike.flow import flow_banner
 st.set_page_config(page_title="Coach • Crowdlike", page_icon="🤖", layout="wide")
 apply_ui()
 
@@ -43,6 +44,8 @@ _crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
 
 nav(active="Coach")
+flow_banner(user, active="Run a cycle")
+
 active_agent = get_active_agent(user)
 
 hero(
@@ -135,71 +138,72 @@ def _render_run() -> None:
         _render_signals()
         st.caption("These signals determine what agents are allowed to do without approval.")
 
-    soft_divider()
 
-    st.markdown("### Run cycle")
-    r1, r2, r3 = st.columns([1.2, 1.0, 1.0])
+soft_divider()
 
-    with r1:
-        if st.button("Run agent cycle", type="primary", use_container_width=True):
-            report = run_agent_cycle(user, active_agent, markets=rows if isinstance(rows, list) else None, reason="coach")
-            prop = report.get("proposal") if isinstance(report.get("proposal"), dict) else {}
-            title = str(prop.get("title") or "Action")
+st.markdown("### Run cycle")
+r1, r2, r3 = st.columns([1.2, 1.0, 1.0])
 
-            if report.get("executed"):
-                st.success(f"Executed: {title}")
-            elif report.get("queued"):
-                st.success(f"Queued for approval: {title}")
-            else:
-                dec = report.get("decision") if isinstance(report.get("decision"), dict) else {}
-                st.info(str(dec.get("reason") or "No action"))
-            save_current_user()
-            st.rerun()
+with r1:
+    if st.button("Run agent cycle", type="primary", use_container_width=True):
+        report = run_agent_cycle(user, active_agent, markets=rows if isinstance(rows, list) else None, reason="coach")
+        prop = report.get("proposal") if isinstance(report.get("proposal"), dict) else {}
+        title = str(prop.get("title") or "Action")
 
-    with r2:
-        if st.button("Generate proposal only", use_container_width=True):
-            p = propose_next_action(user, active_agent, markets=rows if isinstance(rows, list) else None)
-            log_event(
-                user,
-                kind="agent",
-                title="New proposal",
-                details=str(p.get("title") or "proposal"),
-                severity="info",
-                agent_id=str(active_agent.get("id")),
-            )
-            log_audit(
-                user,
-                kind="proposal",
-                msg=f"Proposed: {p.get('title')}",
-                agent_id=str(active_agent.get("id")),
-                proposal_id=str(p.get("id")),
-            )
-            grant_xp(user, 10, "Coach", "Generated proposal")
-            log_activity(user, "Generated a proposal", icon="🤖")
-            save_current_user()
-            st.success("Proposal queued ✅")
-            st.rerun()
+        if report.get("executed"):
+            st.success(f"Executed: {title}")
+        elif report.get("queued"):
+            st.success(f"Queued for approval: {title}")
+        else:
+            dec = report.get("decision") if isinstance(report.get("decision"), dict) else {}
+            st.info(str(dec.get("reason") or "No action"))
+        save_current_user()
+        st.rerun()
 
-    with r3:
-        st.caption("Tip: approvals appear in the next tab.")
-        st.markdown("")
+with r2:
+    if st.button("Generate proposal only", use_container_width=True):
+        p = propose_next_action(user, active_agent, markets=rows if isinstance(rows, list) else None)
+        log_event(
+            user,
+            kind="agent",
+            title="New proposal",
+            details=str(p.get("title") or "proposal"),
+            severity="info",
+            agent_id=str(active_agent.get("id")),
+        )
+        log_audit(
+            user,
+            kind="proposal",
+            msg=f"Proposed: {p.get('title')}",
+            agent_id=str(active_agent.get("id")),
+            proposal_id=str(p.get("id")),
+        )
+        grant_xp(user, 10, "Coach", "Generated proposal")
+        log_activity(user, "Generated a proposal", icon="🤖")
+        save_current_user()
+        st.success("Proposal queued ✅")
+        st.rerun()
 
-    # Preview last run report (if present)
-    runs = active_agent.get("runs") if isinstance(active_agent.get("runs"), list) else []
-    if runs:
-        last = runs[-1] if isinstance(runs[-1], dict) else None
-        if last:
-            with st.expander("Last run report", expanded=False):
-                st.markdown(f"**Run ID:** `{last.get('run_id','')}`")
-                st.caption(str(last.get("reason") or ""))
-                dec = last.get("decision") if isinstance(last.get("decision"), dict) else {}
-                st.markdown(f"**Decision:** {dec.get('status','')} — {dec.get('reason','')}")
-                prop = last.get("proposal") if isinstance(last.get("proposal"), dict) else {}
-                if prop:
-                    st.markdown(f"**Proposed:** {prop.get('title','')}")
-                    st.caption(f"Type: {prop.get('type','')} · Mode: {prop.get('mode','')}")
-    else:
-        callout("Run your first cycle to generate a report and see the agent workflow end-to-end.", tone="muted")
+with r3:
+    st.caption("Tip: approvals appear in the next tab.")
+    st.markdown("")
+
+# Preview last run report (if present)
+runs = active_agent.get("runs") if isinstance(active_agent.get("runs"), list) else []
+if runs:
+    last = runs[-1] if isinstance(runs[-1], dict) else None
+    if last:
+        with st.expander("Last run report", expanded=False):
+            st.markdown(f"**Run ID:** `{last.get('run_id','')}`")
+            st.caption(str(last.get("reason") or ""))
+            dec = last.get("decision") if isinstance(last.get("decision"), dict) else {}
+            st.markdown(f"**Decision:** {dec.get('status','')} — {dec.get('reason','')}")
+            prop = last.get("proposal") if isinstance(last.get("proposal"), dict) else {}
+            if prop:
+                st.markdown(f"**Proposed:** {prop.get('title','')}")
+                st.caption(f"Type: {prop.get('type','')} · Mode: {prop.get('mode','')}")
+else:
+    callout("Run your first cycle to generate a report and see the agent workflow end-to-end.", tone="muted")
 
 
 def _render_approvals() -> None:
