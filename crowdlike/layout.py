@@ -13,7 +13,7 @@ import streamlit as st
 
 from crowdlike.agents import agent_label, get_agents, get_active_agent, set_active_agent
 from crowdlike.auth import logout, save_current_user
-from crowdlike.ui import soft_divider, callout, button_style
+from crowdlike.ui import soft_divider, callout, button_style, pills
 from crowdlike.version import VERSION
 
 
@@ -45,8 +45,12 @@ def render_sidebar(user: Dict[str, Any], *, active_page: str = "") -> None:
     """
 
     with st.sidebar:
-        st.markdown("### Crowdlike")
-        st.caption(f"v{VERSION} · Arc USDC testnet demo")
+        st.markdown("### 🫧 Crowdlike")
+        pills([
+            ("Version", f"v{VERSION}", "info"),
+            ("Network", "Arc testnet", "info"),
+        ])
+        st.caption("Local-first demo · Safe-by-default UX")
 
         # --- Agent switcher (global) ---
         agents = get_agents(user)

@@ -186,8 +186,45 @@ st.subheader("Your agents")
 if not agents:
     callout("warn", "No agents found", "Create an agent above.")
 else:
-    cols = st.columns(3)
-    for i, a in enumerate(agents):
+    # --- Browse controls (v1) ---
+    f1, f2, f3 = st.columns([1.6, 1.0, 1.0])
+    with f1:
+        q = st.text_input("Search agents", key="agents_search", placeholder="Search by name, emoji, or strategy…")
+    with f2:
+        sort_by = st.selectbox("Sort by", options=["Active first", "Value", "P&L", "Return"], index=0)
+    with f3:
+        view_cols = st.selectbox("Layout", options=["3 columns", "2 columns"], index=0)
+
+    # Precompute lightweight metrics for sorting/filtering (display-only)
+    cards = []
+    ql = (q or "").strip().lower()
+    for a in agents:
+        port = a.get("portfolio") if isinstance(a.get("portfolio"), dict) else {}
+        v = portfolio_value(port, price_map)
+        inc = since_inception(a, v)
+        win = returns_windows(a, v)
+        label = agent_label(a)
+        strategy_name = str(((a.get("strategy") or {}) if isinstance(a.get("strategy"), dict) else {}).get("name") or "")
+        searchable = f"{label} {strategy_name}".lower()
+        if ql and ql not in searchable:
+            continue
+        cards.append((a, v, inc, win, label, strategy_name))
+
+    def _is_active(a):
+        return str(a.get("id")) == str(user.get("active_agent_id"))
+
+    if sort_by == "Value":
+        cards.sort(key=lambda t: float(t[1] or 0.0), reverse=True)
+    elif sort_by == "P&L":
+        cards.sort(key=lambda t: float((t[2] or {}).get("profit", 0.0) or 0.0), reverse=True)
+    elif sort_by == "Return":
+        cards.sort(key=lambda t: float((t[2] or {}).get("return_pct", 0.0) or 0.0), reverse=True)
+    else:
+        cards.sort(key=lambda t: (not _is_active(t[0]), -float(t[1] or 0.0)))
+
+    cols_n = 3 if view_cols == "3 columns" else 2
+    cols = st.columns(cols_n)
+    for i, (a, v, inc, win, label, strategy_name) in enumerate(cards):
         port = a.get("portfolio") if isinstance(a.get("portfolio"), dict) else {}
         v = portfolio_value(port, price_map)
         inc = since_inception(a, v)

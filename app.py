@@ -42,7 +42,7 @@ agents = get_agents(user)
 
 hero(
     f"{user.get('avatar','🧊')}  Welcome, {user.get('username','Member')}",
-    f"Crowdlike v{VERSION} · multi-agent investing + agentic payments · Arc USDC testnet demo.",
+    f"Crowdlike v{VERSION} · premium agent console with autonomy, run reports, and analytics.",
     badge=f"{agent_label(active_agent)} · Level {lvl} · Streak {streak}d",
 )
 

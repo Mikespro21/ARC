@@ -264,7 +264,65 @@ def apply_ui() -> None:
         transform: translateY(-1px);
         box-shadow: 0 0 0 3px rgba(167,139,250,0.22), 0 12px 26px rgba(2,6,23,0.10);
     }
-    </style>
+    
+    /* ---- Crowdlike v1 polish ---- */
+    :root{
+      --content-max: 1180px;
+      --h1: 2.0rem;
+      --h2: 1.35rem;
+      --h3: 1.10rem;
+      --text: 0.98rem;
+    }
+    .block-container{
+      max-width: var(--content-max);
+      padding-top: 1.2rem !important;
+      padding-bottom: 3.0rem !important;
+    }
+    /* Typography */
+    h1, h2, h3 { letter-spacing: -0.02em; }
+    h1{ font-size: var(--h1) !important; }
+    h2{ font-size: var(--h2) !important; }
+    h3{ font-size: var(--h3) !important; }
+    p, li, div { font-size: var(--text); }
+    /* Buttons: clearer hierarchy */
+    .stButton > button{
+      border-radius: var(--r-btn) !important;
+      font-weight: 650 !important;
+      transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    }
+    .stButton > button:hover{ filter: brightness(1.01); box-shadow: var(--shadow-soft); }
+    .stButton > button:active{ transform: translateY(1px); }
+    /* Active nav button: disabled state looks selected */
+    .stButton > button:disabled{
+      opacity: 1 !important;
+      background: rgba(255,255,255,0.55) !important;
+      border: 1px solid rgba(99,102,241,0.28) !important;
+      box-shadow: 0 10px 24px rgba(99,102,241,0.10) !important;
+      color: rgba(15,23,42,0.92) !important;
+    }
+    /* Tabs: pill style */
+    div[data-baseweb="tabs"]{ background: transparent !important; }
+    button[data-baseweb="tab"]{
+      border-radius: 999px !important;
+      padding: 8px 14px !important;
+      margin-right: 8px !important;
+      border: 1px solid rgba(148,163,184,0.18) !important;
+      background: rgba(255,255,255,0.42) !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"]{
+      background: rgba(255,255,255,0.70) !important;
+      border: 1px solid rgba(99,102,241,0.26) !important;
+      box-shadow: 0 10px 22px rgba(99,102,241,0.10) !important;
+    }
+    /* Sidebar polish */
+    section[data-testid="stSidebar"]{
+      border-right: 1px solid rgba(148,163,184,0.18) !important;
+      background: rgba(255,255,255,0.40) !important;
+      backdrop-filter: blur(14px);
+    }
+    /* Reduce visual noise */
+    .stCaption { color: var(--muted) !important; }
+</style>
     """
     st.markdown(css, unsafe_allow_html=True)
 
