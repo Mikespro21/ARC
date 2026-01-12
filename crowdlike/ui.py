@@ -730,22 +730,36 @@ def button_style(key: str, variant: str) -> None:
 
 
 def nav(active: str = "home") -> None:
-    """v1.5 navbar (grouped dropdowns + search).
+    """Render the global top navigation exactly once per Streamlit script run.
 
-    Kept under the same name so existing pages do not need invasive edits.
+    In Streamlit's multipage execution model, the main script and a page script can
+    both execute in the same run, which can lead to duplicate widgets (duplicate keys).
+    We guard using the current script_run_id when available.
     """
-    from crowdlike.navbar import render_navbar
-
-    # normalize common label values
     a = (active or "home").strip().lower()
-    a = {
-        "home": "home",
-        "launch app": "dashboard",
-        "dashboard": "dashboard",
-        "leaderboards": "compare",
-    }.get(a, a)
-    render_navbar(active=a)
 
+    # normalize common aliases
+    a = {
+        "launch app": "dashboard",
+        "leaderboards": "compare",
+        "leaderboard": "compare",
+    }.get(a, a)
+
+    # Per-run guard to avoid duplicate navbar rendering
+    run_id = None
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx  # type: ignore
+        ctx = get_script_run_ctx()
+        run_id = getattr(ctx, "script_run_id", None) or getattr(ctx, "run_id", None)
+    except Exception:
+        run_id = None
+
+    if run_id is not None:
+        if st.session_state.get("_crowdlike_nav_last_run_id") == run_id:
+            return
+        st.session_state["_crowdlike_nav_last_run_id"] = run_id
+
+    render_navbar(active=a)
 
 
 def bg_ratio() -> dict:
