@@ -78,7 +78,11 @@ def render_sidebar(user: Dict[str, Any], *, active_page: str = "") -> None:
 
         # --- Quick demo actions ---
         st.markdown("**Quick actions**")
-        c1, c2 = st.columns(2)
+        # Slightly larger gap so CTAs don't feel cramped.
+        try:
+            c1, c2 = st.columns(2, gap="large")
+        except TypeError:
+            c1, c2 = st.columns(2)
         with c1:
             button_style("sb_go_checkout", "purple")
             if st.button("Checkout", key="sb_go_checkout", use_container_width=True):

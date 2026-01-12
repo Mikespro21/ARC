@@ -292,6 +292,18 @@ def apply_ui() -> None:
     }
     .stButton > button:hover{ filter: brightness(1.01); box-shadow: var(--shadow-soft); }
     .stButton > button:active{ transform: translateY(1px); }
+
+    /* --- v1.1.1 spacing pass: reduce button clustering --- */
+    /* More vertical air between stacked buttons */
+    div[data-testid="stButton"]{ margin: 0.42rem 0 !important; }
+    section[data-testid="stSidebar"] div[data-testid="stButton"]{ margin: 0.34rem 0 !important; }
+
+    /* More horizontal air inside columns/button rows */
+    div[data-testid="stHorizontalBlock"]{ gap: 1.0rem !important; }
+    div[data-testid="column"]{ padding-left: 0.35rem !important; padding-right: 0.35rem !important; }
+
+    /* Make widgets feel less cramped */
+    div[data-testid="stVerticalBlock"] > div{ padding-top: 0.10rem; padding-bottom: 0.10rem; }
     /* Active nav button: disabled state looks selected */
     .stButton > button:disabled{
       opacity: 1 !important;
@@ -598,7 +610,11 @@ def nav(active: str = "Home") -> None:
     role = str((u or {}).get("role") or "human").lower()
 
     core = core_pages(role)
-    cols = st.columns(len(core) + 1)
+    # More spacing between nav buttons (Streamlit versions differ on 'gap' support).
+    try:
+        cols = st.columns(len(core) + 1, gap="large")
+    except TypeError:
+        cols = st.columns(len(core) + 1)
 
     for i, p in enumerate(core):
         with cols[i]:
