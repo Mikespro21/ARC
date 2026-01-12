@@ -1,6 +1,6 @@
 import streamlit as st
 
-from crowdlike.ui import apply_ui, nav, soft_divider, callout, metric_card
+from crowdlike.ui import apply_ui, nav, soft_divider, callout, metric_card, button_style
 from crowdlike.layout import render_sidebar
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.agents import get_active_agent, get_agents
@@ -14,10 +14,18 @@ apply_ui()
 user = require_login("Crowdlike")
 ensure_user_schema(user)
 
+# v1.5: onboarding gate
+if not st.session_state.get("onboard_complete") and not user.get("onboarded"):
+    callout("You are in a fresh cloud session. Complete onboarding once for the smoothest flow.", tone="warning")
+    button_style("dash_start_onb", "purple")
+    if st.button("Start onboarding", key="dash_start_onb", use_container_width=True):
+        st.switch_page("pages/journey.py")
+    soft_divider()
+
 render_sidebar(user)
 
 # Highlight "Launch App" in the website-style top nav
-nav(active="Launch App")
+nav(active="dashboard")
 
 st.markdown("## Dashboard")
 

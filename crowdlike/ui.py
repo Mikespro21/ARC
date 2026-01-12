@@ -448,6 +448,20 @@ def apply_ui() -> None:
         padding: 12px 14px !important;
         border-radius: 14px !important;
     }
+
+/* v1.5: global spacing + web polish */
+.block-container { padding-top: 1.25rem !important; padding-bottom: 3.5rem !important; max-width: 1220px; }
+div[data-testid="stVerticalBlock"] > div { gap: 0.95rem !important; }
+.stButton > button { padding: 0.72rem 0.95rem !important; border-radius: 16px !important; }
+.stButton { margin-top: 0.10rem; margin-bottom: 0.35rem; }
+.topbar { position: sticky; top: 0; z-index: 999; padding: 0.9rem 1.0rem; margin: -0.5rem -1rem 1.0rem -1rem; backdrop-filter: blur(14px); background: rgba(255,255,255,0.55); border-bottom: 1px solid var(--border); }
+.topbar-logo { font-weight: 900; font-size: 1.05rem; letter-spacing: -0.02em; display:flex; gap: .45rem; align-items:center; }
+.topbar-logo span { color: rgba(15,23,42,0.95); }
+@media (max-width: 900px){
+  .block-container { padding-left: 0.9rem !important; padding-right: 0.9rem !important; }
+  .topbar { padding: 0.75rem 0.65rem; }
+}
+
 </style>
     """
     st.markdown(css, unsafe_allow_html=True)
@@ -715,55 +729,23 @@ def button_style(key: str, variant: str) -> None:
     )
 
 
-def nav(active: str = "Home") -> None:
-    """Top nav with a short row + expandable 'More' drawer."""
-    from crowdlike.auth import current_user
-    from crowdlike.registry import core_pages, search_pages, groups
+def nav(active: str = "home") -> None:
+    """v1.5 navbar (grouped dropdowns + search).
 
-    u = current_user() or {}
-    role = str((u or {}).get("role") or "human").lower()
+    Kept under the same name so existing pages do not need invasive edits.
+    """
+    from crowdlike.navbar import render_navbar
 
-    core = core_pages(role)
-    # More spacing between nav buttons (Streamlit versions differ on 'gap' support).
-    try:
-        cols = st.columns(len(core) + 1, gap="large")
-    except TypeError:
-        cols = st.columns(len(core) + 1)
+    # normalize common label values
+    a = (active or "home").strip().lower()
+    a = {
+        "home": "home",
+        "launch app": "dashboard",
+        "dashboard": "dashboard",
+        "leaderboards": "compare",
+    }.get(a, a)
+    render_navbar(active=a)
 
-    for i, p in enumerate(core):
-        with cols[i]:
-            label = f"{p.icon} {p.label}"
-            if p.label == active:
-                st.button(label, disabled=True, use_container_width=True)
-            else:
-                if st.button(label, use_container_width=True):
-                    st.switch_page(p.path)
-
-    # Expandable drawer
-    with cols[-1]:
-        label = "⋯ More"
-        try:
-            pop = st.popover(label, use_container_width=True)
-        except Exception:
-            pop = st.expander(label)
-
-        with pop:
-            st.caption("Search and jump to any page.")
-            q = st.text_input("Search pages", key="nav_search", placeholder="e.g., Pricing, Safety, Social…")
-            pages = search_pages(q, role)
-
-            # Grouped + scrollable
-            st.markdown('<div style="max-height:360px; overflow-y:auto; padding-right:6px;">', unsafe_allow_html=True)
-            last_group = None
-            for p in pages:
-                if last_group != p.group:
-                    st.markdown(f"#### {p.group}")
-                    last_group = p.group
-
-                lbl = f"{p.icon} {p.label}"
-                if st.button(lbl, key=f"nav_more_{p.id}", use_container_width=True):
-                    st.switch_page(p.path)
-            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def bg_ratio() -> dict:

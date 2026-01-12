@@ -1,94 +1,95 @@
 from __future__ import annotations
 
-import json
-import os
+"""
+Cloud-first storage backend (v1.5).
+
+Streamlit Community Cloud containers have an ephemeral filesystem. For a demo UX that feels
+stable *within a session* (and does not error in cloud), we store user data in Streamlit
+session state by default.
+
+This module keeps the same public API as earlier versions (load_user/save_user, etc.)
+but no longer reads/writes local files.
+
+If you later want persistence, implement a real backend (Postgres, Redis, etc.) and
+swap these functions.
+"""
+
 import re
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 
-DATA_DIR = Path(".crowdlike_data")
-USERS_DIR = DATA_DIR / "users"
-ACTIVE_FILE = DATA_DIR / "active_user.json"
+try:
+    import streamlit as st  # type: ignore
+except Exception:  # pragma: no cover
+    st = None  # type: ignore
 
 
-def _ensure_dirs() -> None:
-    USERS_DIR.mkdir(parents=True, exist_ok=True)
+_USERNAME_SAFE = re.compile(r"[^a-zA-Z0-9_\-]+")
 
 
 def safe_username(name: str) -> str:
-    """Normalize a username to a safe, file-friendly id.
-
-    Rules (demo-safe):
-    - lowercased
-    - spaces -> underscore
-    - allowed: a-z, 0-9, underscore
-    - 3..20 chars
-    """
-    raw = (name or "").strip().lower()
-    raw = re.sub(r"\s+", "_", raw)
-    raw = re.sub(r"[^a-z0-9_]", "", raw)
-    raw = re.sub(r"_+", "_", raw).strip("_")
-    if len(raw) < 3:
-        return "member"
-    return raw[:20]
+    """Normalize user identifiers into safe keys."""
+    name = (name or "").strip()
+    if not name:
+        return "guest"
+    name = _USERNAME_SAFE.sub("_", name)
+    return name[:64].strip("_") or "guest"
 
 
-def _user_path(user_id: str) -> Path:
-    _ensure_dirs()
-    return USERS_DIR / f"{safe_username(user_id)}.json"
+def _store() -> Optional[Dict[str, Any]]:
+    """Return the in-session store dict."""
+    if st is None:
+        return None
+    if "_crowdlike_store" not in st.session_state:
+        st.session_state["_crowdlike_store"] = {
+            "users": {},         # user_id -> user dict
+            "active_user": None, # user_id
+            "meta": {
+                "created_at": None,
+            },
+        }
+    meta = st.session_state["_crowdlike_store"].get("meta") or {}
+    if not meta.get("created_at"):
+        meta["created_at"] = __import__("datetime").datetime.utcnow().isoformat() + "Z"
+        st.session_state["_crowdlike_store"]["meta"] = meta
+    return st.session_state["_crowdlike_store"]
 
 
 def load_user(user_id: str) -> Optional[Dict[str, Any]]:
-    try:
-        p = _user_path(user_id)
-        if not p.exists():
-            return None
-        return json.loads(p.read_text(encoding="utf-8"))
-    except Exception:
+    s = _store()
+    if not s:
         return None
+    return (s.get("users") or {}).get(user_id)
 
 
 def save_user(user_id: str, data: Dict[str, Any]) -> None:
-    try:
-        p = _user_path(user_id)
-        p.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
-    except Exception:
-        # Fail silently (local persistence is best-effort)
-        pass
+    s = _store()
+    if not s:
+        return
+    users = s.get("users") or {}
+    users[user_id] = data
+    s["users"] = users
 
 
 def load_active_user() -> Optional[str]:
-    try:
-        if not ACTIVE_FILE.exists():
-            return None
-        data = json.loads(ACTIVE_FILE.read_text(encoding="utf-8"))
-        u = (data.get("user_id") or "").strip()
-        return u or None
-    except Exception:
+    s = _store()
+    if not s:
         return None
+    return s.get("active_user")
 
 
 def save_active_user(user_id: Optional[str]) -> None:
-    try:
-        DATA_DIR.mkdir(parents=True, exist_ok=True)
-        if not user_id:
-            if ACTIVE_FILE.exists():
-                ACTIVE_FILE.unlink()
-            return
-        ACTIVE_FILE.write_text(json.dumps({"user_id": safe_username(user_id)}), encoding="utf-8")
-    except Exception:
-        pass
+    s = _store()
+    if not s:
+        return
+    s["active_user"] = user_id
 
 
-def delete_user(user_id: str) -> bool:
-    try:
-        p = _user_path(user_id)
-        if p.exists():
-            p.unlink()
-        # If they were active, clear
-        active = load_active_user()
-        if active and safe_username(active) == safe_username(user_id):
-            save_active_user(None)
-        return True
-    except Exception:
-        return False
+def export_debug_state() -> Dict[str, Any]:
+    """Convenience for support debugging (safe to show in demo)."""
+    s = _store() or {}
+    users = s.get("users") or {}
+    return {
+        "active_user": s.get("active_user"),
+        "user_count": len(users),
+        "keys": sorted(list((s.get("meta") or {}).keys())),
+    }

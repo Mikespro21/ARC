@@ -57,58 +57,11 @@ def save_current_user() -> None:
 
 
 def logout() -> None:
+    """Clear the current session user."""
     save_active_user(None)
     st.session_state.pop("user", None)
     st.session_state.pop("user_id", None)
-
-
-def require_login(app_name: str = "Crowdlike") -> Dict[str, Any]:
-    """Block the page until the user is logged in."""
-    # Session already has user
-    u = current_user()
-    if u:
-        record_active_day(u)
-        return u
-
-    # Auto-login from disk (best effort)
-    active = load_active_user()
-    if active:
-        data = load_user(active)
-        if data:
-            _load_into_session(active, data)
-            u = current_user()
-            if u:
-                record_active_day(u)
-                return u
-
-    # Otherwise show login UI and stop
-    _login_ui(app_name=app_name)
-    st.stop()
-
-
-def _login_ui(app_name: str = "Crowdlike") -> None:
-    # Prefer real modal if supported
-    if hasattr(st, "dialog"):
-        @st.dialog("Welcome back ✨")
-        def _dlg():
-            _login_inner(app_name)
-        _dlg()
-        return
-
-    # Fallback overlay
-    st.markdown(
-        f"""
-        <div class="overlay">
-          <div class="overlay-inner">
-            <div class="overlay-title">{app_name} — Sign in</div>
-            <div class="overlay-subtitle">Your profile, stats, and wallet live on this device.</div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    # Render actual inputs below (Streamlit can't nest interactive widgets inside the HTML)
-    _login_inner(app_name)
+    # Keep onboarding state (user may intentionally log out and re-enter as guest)
 
 
 def _login_inner(app_name: str) -> None:

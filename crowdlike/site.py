@@ -5,29 +5,10 @@ import streamlit as st
 from crowdlike.ui import button_style
 
 
-def site_header(active: str = "Home") -> None:
-    """Sticky website header with simple nav + primary CTA."""
-    st.markdown('<div class="site-header">', unsafe_allow_html=True)
-    a, b, c = st.columns([1.2, 2.2, 1.2], gap="large")
-
-    with a:
-        st.markdown('<div class="site-logo">🫧 <span>Crowdlike</span></div>', unsafe_allow_html=True)
-        st.markdown('<div class="site-tag">Official demo build</div>', unsafe_allow_html=True)
-
-    with b:
-        # Keep this light; the real nav highlighting is handled by ui.nav
-        st.markdown('<div class="site-links">Home · Product · Pricing · Docs</div>', unsafe_allow_html=True)
-
-    with c:
-        button_style("site_launch", "purple")
-        if st.button("Launch App", key="site_launch", use_container_width=True):
-            st.switch_page("pages/dashboard.py")
-        button_style("site_journey", "ghost")
-        if st.button("Journey", key="site_journey", use_container_width=True):
-            st.switch_page("pages/journey.py")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
+def site_header(active: str = "home") -> None:
+    """Website header (v1.5). Uses the unified navbar."""
+    from crowdlike.ui import nav
+    nav(active=active)
 
 def site_hero(*, kicker: str, title: str, subtitle: str) -> None:
     st.markdown(

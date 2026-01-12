@@ -8,11 +8,11 @@ st.set_page_config(page_title="Crowdlike", page_icon="🫧", layout="wide")
 apply_ui()
 
 # Website Home (no login required)
-site_header(active="Home")
-nav(active="Home")
+site_header(active="home")
+nav(active="home")
 
 site_hero(
-    kicker="Crowdlike v1",
+    kicker="Crowdlike v1.5",
     title="Agentic commerce that stays inside the crowd.",
     subtitle=(
         "Crowdlike helps multiple AI agents transact safely on-chain with user-set risk, limits, "
