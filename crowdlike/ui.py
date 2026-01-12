@@ -343,10 +343,67 @@ def status_bar(
     pills(items)
 
 
-def callout(kind: str, title: str, body: str) -> None:
-    kind = kind if kind in ("info", "good", "warn", "bad") else "info"
+def callout(
+    *args,
+    tone: str | None = None,
+    kind: str | None = None,
+    title: str | None = None,
+    body: str | None = None,
+) -> None:
+    """Render a small callout card.
+
+    Backwards compatible with the original signature:
+        callout(kind, title, body)
+
+    And supports a simpler signature used by newer pages:
+        callout(message, tone="muted"|"warning"|"success"|...)
+    """
+
+    import html as _html
+    import re as _re
+
+    def _fmt(text: str) -> str:
+        """Safely format lightweight markdown (**bold**) + newlines inside HTML."""
+        s = _html.escape(str(text or ""))
+        s = _re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
+        s = s.replace("\n", "<br/>")
+        return s
+
+    # --- Parse args ---
+    if len(args) == 3:
+        kind_, title_, body_ = args
+        kind_ = str(kind_)
+        title_ = _fmt(title_)
+        body_ = _fmt(body_)
+    elif len(args) == 1:
+        # message-only mode
+        msg = str(args[0])
+        title_ = _fmt(title or "")
+        body_ = _fmt(body or msg)
+        # Map tone -> kind (CSS classes)
+        tone_norm = str(tone or kind or "info").strip().lower()
+        tone_map = {
+            "muted": "info",
+            "info": "info",
+            "warning": "warn",
+            "warn": "warn",
+            "success": "good",
+            "good": "good",
+            "danger": "bad",
+            "error": "bad",
+            "bad": "bad",
+        }
+        kind_ = tone_map.get(tone_norm, "info")
+    else:
+        # Fallback: allow keyword-only usage
+        title_ = _fmt(title or "")
+        body_ = _fmt(body or "")
+        kind_ = str(kind or "info")
+
+    kind_ = kind_ if kind_ in ("info", "good", "warn", "bad") else "info"
+    title_html = f'<div class="t">{title_}</div>' if title_ else ""
     st.markdown(
-        f'<div class="callout {kind}"><div class="t">{title}</div><div class="b">{body}</div></div>',
+        f'<div class="callout {kind_}">{title_html}<div class="b">{body_}</div></div>',
         unsafe_allow_html=True,
     )
 
