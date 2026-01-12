@@ -6,6 +6,7 @@ from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, metric_c
 from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, add_notification, log_activity
+from crowdlike.layout import render_sidebar
 
 st.set_page_config(page_title="Social", page_icon="🫶", layout="wide")
 apply_ui()
@@ -14,6 +15,8 @@ user = require_login(app_name="Crowdlike")
 maybe_run_tour(user, current_page="social")
 ensure_user_schema(user)
 record_visit(user, "social")
+
+render_sidebar(user, active_page="social")
 save_current_user()
 
 _demo = bool_setting("DEMO_MODE", True)

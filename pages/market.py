@@ -10,6 +10,7 @@ from crowdlike.game import record_visit, ensure_user_schema, grant_xp, add_notif
 from crowdlike.agents import get_active_agent, agent_label
 from crowdlike.market_data import get_markets, get_market_chart_7d
 from crowdlike.policy import PaymentPolicy
+from crowdlike.layout import render_sidebar
 from crowdlike.arc import (
     cast_usdc_transfer_cmd,
     get_tx_receipt,
@@ -29,6 +30,8 @@ user = require_login(app_name="Crowdlike")
 maybe_run_tour(user, current_page="market")
 ensure_user_schema(user)
 record_visit(user, "market")
+
+render_sidebar(user, active_page="market")
 
 active_agent = get_active_agent(user)
 

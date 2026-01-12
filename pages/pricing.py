@@ -6,6 +6,7 @@ from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit
 from crowdlike.agents import get_agents
 from crowdlike.pricing import quote_daily
+from crowdlike.layout import render_sidebar
 
 st.set_page_config(page_title="Pricing", page_icon="💳", layout="wide")
 apply_ui()
@@ -13,6 +14,8 @@ apply_ui()
 user = require_login(app_name="Crowdlike")
 ensure_user_schema(user)
 record_visit(user, "pricing")
+
+render_sidebar(user, active_page="pricing")
 
 _demo = bool_setting("DEMO_MODE", True)
 wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}

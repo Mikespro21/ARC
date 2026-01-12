@@ -1,10 +1,11 @@
-# Crowdlike v0.30 (Multi-agent vision demo)
+# Crowdlike v0.31 (UX-first multi-agent demo)
 
 
-## New in 0.30
+## New in 0.31
 
-- Big product shift: **multiple agents**, each with their own portfolio and chat history.
-- New pages: **Agents**, **Compare**, **Chat**, **Safety**, **Pricing**.
+- Always-on sidebar: **active agent switcher**, **readiness checklist**, and **quick actions** (Checkout / Coach).
+- Safer UX: **confirmations** for destructive actions (panic sell, manual exit, delete agent).
+- Navigation upgrade: **Coach** is now first-class in the top nav.
 - Comparison dashboard ranks agents by **profit** and **% return** across daily/weekly/monthly/yearly.
 - Safety UX: **panic sell**, **fraud alert**, and **auto drawdown exit** (demo converts holdings to “cash”).
 - Pricing UX: pay-per-day estimator with exponential scaling by agents/risk/autonomy.

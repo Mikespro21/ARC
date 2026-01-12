@@ -7,6 +7,7 @@ from crowdlike.game import ensure_user_schema, record_visit
 from crowdlike.agents import get_agents, get_active_agent, agent_label
 from crowdlike.market_data import get_markets
 from crowdlike.performance import portfolio_value, ensure_daily_snapshot, returns_windows, since_inception
+from crowdlike.layout import render_sidebar
 
 
 st.set_page_config(page_title="Compare", page_icon="📊", layout="wide")
@@ -15,6 +16,8 @@ apply_ui()
 user = require_login(app_name="Crowdlike")
 ensure_user_schema(user)
 record_visit(user, "compare")
+
+render_sidebar(user, active_page="compare")
 
 _demo = bool_setting("DEMO_MODE", True)
 wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}

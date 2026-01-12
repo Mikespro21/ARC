@@ -14,6 +14,7 @@ from crowdlike.arc import (
     is_address,
 )
 from crowdlike.game import record_visit, ensure_user_schema, grant_xp, add_notification
+from crowdlike.layout import render_sidebar
 
 
 DEMO_MODE = bool_setting("DEMO_MODE", True)
@@ -37,6 +38,7 @@ user = require_login(app_name="Crowdlike")
 maybe_run_tour(user, current_page="profile")
 ensure_user_schema(user)
 record_visit(user, "profile")
+render_sidebar(user, active_page="profile")
 save_current_user()
 
 nav(active="Profile")

@@ -6,6 +6,7 @@ from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user, logout
 from crowdlike.game import xp_progress, compute_streak, record_visit, ensure_user_schema
 from crowdlike.agents import get_active_agent, get_agents, agent_label
+from crowdlike.layout import render_sidebar
 from crowdlike.version import VERSION
 
 st.set_page_config(page_title="Crowdlike", page_icon="🫧", layout="wide")
@@ -20,24 +21,7 @@ save_current_user()
 
 _demo = bool_setting("DEMO_MODE", True)
 
-with st.sidebar:
-    st.markdown("### Quick menu")
-    st.page_link("app.py", label="Home")
-    st.page_link("pages/agents.py", label="Agents")
-    st.page_link("pages/compare.py", label="Compare")
-    st.page_link("pages/chat.py", label="Chat")
-    st.page_link("pages/market.py", label="Market")
-    st.page_link("pages/safety.py", label="Safety")
-    st.page_link("pages/pricing.py", label="Pricing")
-    st.page_link("pages/quests.py", label="Quests")
-    st.page_link("pages/shop.py", label="Shop")
-    st.page_link("pages/social.py", label="Social")
-    st.page_link("pages/profile.py", label="Profile")
-    soft_divider()
-    if st.button("Log out", key="sb_logout"):
-        logout()
-        st.rerun()
-    st.caption("Saved locally on this device.")
+render_sidebar(user, active_page="home")
 
 nav(active="Home")
 

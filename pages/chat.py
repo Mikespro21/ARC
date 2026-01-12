@@ -11,6 +11,7 @@ from crowdlike.market_data import get_markets
 from crowdlike.performance import portfolio_value, returns_windows, since_inception, ensure_daily_snapshot
 from crowdlike.strategy import STRATEGY_TEMPLATES, apply_template
 from crowdlike.safety import trigger_panic
+from crowdlike.layout import render_sidebar
 
 
 st.set_page_config(page_title="Chat", page_icon="💬", layout="wide")
@@ -19,6 +20,8 @@ apply_ui()
 user = require_login(app_name="Crowdlike")
 ensure_user_schema(user)
 record_visit(user, "chat")
+
+render_sidebar(user, active_page="chat")
 
 _demo = bool_setting("DEMO_MODE", True)
 wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
@@ -33,22 +36,7 @@ active = get_active_agent(user)
 
 hero("💬 Chat", "Chat with one agent at a time. Each agent has its own chat history.", badge=agent_label(active))
 
-# --- Agent selector ---
-ids = [str(a.get("id")) for a in agents]
-id_to_label = {str(a.get("id")): agent_label(a) for a in agents}
-
-sel = st.selectbox(
-    "Active agent",
-    options=ids,
-    format_func=lambda x: id_to_label.get(x, x),
-    index=ids.index(str(user.get("active_agent_id"))) if str(user.get("active_agent_id")) in ids else 0,
-)
-if str(sel) != str(user.get("active_agent_id")):
-    set_active_agent(user, str(sel))
-    save_current_user()
-    st.rerun()
-
-active = get_active_agent(user)
+st.caption("Tip: switch your active agent from the sidebar to change portfolios + chat history.")
 
 # --- Pricing for holdings ---
 coin_ids = []

@@ -5,6 +5,8 @@ from crowdlike.settings import bool_setting
 from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, grant_xp, add_notification, log_activity, compute_streak, xp_progress
+from crowdlike.agents import get_active_agent, agent_label
+from crowdlike.layout import render_sidebar
 
 st.set_page_config(page_title="Coach", page_icon="🤖", layout="wide")
 apply_ui()
@@ -15,8 +17,11 @@ maybe_run_tour(user, current_page="coach")
 ensure_user_schema(user)
 record_visit(user, "coach")
 
-nav(active="Agent")
-hero("🤖 Agent Coach", "A friendly concierge for quests, market moves, and safe testnet checkout.", badge="Agent")
+render_sidebar(user, active_page="coach")
+
+nav(active="Coach")
+active_agent = get_active_agent(user)
+hero("🤖 Coach", "A friendly concierge for quests, market moves, and safe testnet checkout.", badge=agent_label(active_agent))
 
 # Reduce demo confusion with a tiny status strip
 _demo = bool_setting("DEMO_MODE", True)

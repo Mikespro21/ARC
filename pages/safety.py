@@ -8,6 +8,7 @@ from crowdlike.agents import get_active_agent, agent_label
 from crowdlike.market_data import get_markets
 from crowdlike.performance import portfolio_value
 from crowdlike.safety import trigger_panic, set_fraud_alert, check_safety_triggers, safety_exit
+from crowdlike.layout import render_sidebar
 
 
 st.set_page_config(page_title="Safety", page_icon="🛡️", layout="wide")
@@ -16,6 +17,8 @@ apply_ui()
 user = require_login(app_name="Crowdlike")
 ensure_user_schema(user)
 record_visit(user, "safety")
+
+render_sidebar(user, active_page="safety")
 
 _demo = bool_setting("DEMO_MODE", True)
 wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
@@ -87,15 +90,7 @@ with left:
     with b1:
         button_style("panic_btn", "bad")
         if st.button("Panic sell", key="panic_btn", use_container_width=True):
-            trigger_panic(active)
-            ok, msg = check_safety_triggers(active, price_map)
-            if ok:
-                grant_xp(user, 20, "Safety", "Panic sell")
-                add_notification(user, "Panic sell executed", kind="warning")
-                save_current_user()
-                st.success(msg)
-                st.rerun()
-            st.warning(msg)
+            st.session_state["safety_confirm_action"] = "panic"
     with b2:
         if st.button("Run safety check", use_container_width=True):
             ok, msg = check_safety_triggers(active, price_map)
@@ -103,13 +98,48 @@ with left:
             st.success(msg) if ok else st.info(msg)
     with b3:
         if st.button("Manual exit now", use_container_width=True):
-            ok, msg = safety_exit(active, price_map, "Manual safety exit")
-            if ok:
-                grant_xp(user, 20, "Safety", "Manual exit")
-                add_notification(user, "Exited to USDC", kind="success")
-            save_current_user()
-            st.success(msg) if ok else st.warning(msg)
-            st.rerun()
+            st.session_state["safety_confirm_action"] = "exit"
+
+    # Confirm destructive actions (avoids mis-clicks during demos)
+    act = str(st.session_state.get("safety_confirm_action") or "")
+    if act in ("panic", "exit"):
+        soft_divider()
+        if act == "panic":
+            callout(
+                "warn",
+                "Confirm: Panic sell",
+                "This converts the agent's positions back to USDC in the demo. In production it would place sell orders on-chain.",
+            )
+        else:
+            callout(
+                "warn",
+                "Confirm: Manual safety exit",
+                "This immediately exits to USDC for the active agent (demo).",
+            )
+        c1, c2 = st.columns(2)
+        with c1:
+            button_style("safety_confirm_yes", "bad")
+            if st.button("Confirm", key="safety_confirm_yes", use_container_width=True):
+                if act == "panic":
+                    trigger_panic(active)
+                    ok, msg = check_safety_triggers(active, price_map)
+                    if ok:
+                        grant_xp(user, 20, "Safety", "Panic sell")
+                        add_notification(user, "Panic sell executed", kind="warning")
+                else:
+                    ok, msg = safety_exit(active, price_map, "Manual safety exit")
+                    if ok:
+                        grant_xp(user, 20, "Safety", "Manual exit")
+                        add_notification(user, "Exited to USDC", kind="success")
+
+                st.session_state["safety_confirm_action"] = ""
+                save_current_user()
+                (st.success(msg) if ok else st.warning(msg))
+                st.rerun()
+        with c2:
+            if st.button("Cancel", key="safety_confirm_no", use_container_width=True):
+                st.session_state["safety_confirm_action"] = ""
+                st.rerun()
 
     soft_divider()
     st.subheader("Recent safety events")

@@ -15,6 +15,7 @@ from crowdlike.agents import (
 from crowdlike.market_data import get_markets
 from crowdlike.performance import portfolio_value, ensure_daily_snapshot, returns_windows, since_inception
 from crowdlike.strategy import STRATEGY_TEMPLATES, apply_template, copy_strategy
+from crowdlike.layout import render_sidebar
 
 
 st.set_page_config(page_title="Agents", page_icon="🤖", layout="wide")
@@ -23,6 +24,8 @@ apply_ui()
 user = require_login(app_name="Crowdlike")
 ensure_user_schema(user)
 record_visit(user, "agents")
+
+render_sidebar(user, active_page="agents")
 
 _demo = bool_setting("DEMO_MODE", True)
 wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
@@ -156,11 +159,39 @@ else:
                     st.session_state["copy_mode"] = "params"
                     st.session_state["open_copy_modal"] = True
             with b3:
-                if st.button("Delete", key=f"del_{a.get('id')}", use_container_width=True, disabled=is_active and len(agents) == 1):
-                    delete_agent(user, str(a.get("id")))
-                    save_current_user()
-                    st.warning("Deleted")
-                    st.rerun()
+                if st.button(
+                    "Delete",
+                    key=f"del_{a.get('id')}",
+                    use_container_width=True,
+                    disabled=is_active and len(agents) == 1,
+                ):
+                    st.session_state["confirm_delete_agent_id"] = str(a.get("id"))
+
+
+# --- Confirm delete (prevents accidental clicks during demos) ---
+confirm_id = str(st.session_state.get("confirm_delete_agent_id") or "")
+if confirm_id:
+    tgt = next((a for a in agents if str(a.get("id")) == confirm_id), None)
+    if tgt:
+        soft_divider()
+        callout(
+            "warn",
+            "Confirm delete",
+            f"Delete <b>{agent_label(tgt)}</b>? This removes its portfolio + chat history (local demo only).",
+        )
+        c1, c2 = st.columns(2)
+        with c1:
+            button_style("confirm_del_yes", "bad")
+            if st.button("Yes, delete", key="confirm_del_yes", use_container_width=True):
+                delete_agent(user, confirm_id)
+                st.session_state["confirm_delete_agent_id"] = ""
+                save_current_user()
+                st.warning("Deleted")
+                st.rerun()
+        with c2:
+            if st.button("Cancel", key="confirm_del_no", use_container_width=True):
+                st.session_state["confirm_delete_agent_id"] = ""
+                st.rerun()
 
 # --- Copy strategy panel ---
 if st.session_state.get("open_copy_modal"):

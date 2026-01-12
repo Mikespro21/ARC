@@ -475,14 +475,16 @@ def button_style(key: str, variant: str) -> None:
 
 def nav(active: str = "Home") -> None:
     """Top nav split into small rows to keep it readable."""
+    # Keep "Coach" easily discoverable: judges often ask "where is the agent?"
     row1 = [
         ("Home", "app.py", "nav_home"),
         ("Agents", "pages/agents.py", "nav_agents"),
-        ("Compare", "pages/compare.py", "nav_compare"),
+        ("Market", "pages/market.py", "nav_market"),
+        ("Coach", "pages/coach.py", "nav_coach"),
         ("Chat", "pages/chat.py", "nav_chat"),
     ]
     row2 = [
-        ("Market", "pages/market.py", "nav_market"),
+        ("Compare", "pages/compare.py", "nav_compare"),
         ("Safety", "pages/safety.py", "nav_safety"),
         ("Pricing", "pages/pricing.py", "nav_pricing"),
         ("Profile", "pages/profile.py", "nav_profile"),
