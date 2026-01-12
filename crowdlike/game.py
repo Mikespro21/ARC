@@ -80,6 +80,14 @@ def ensure_user_schema(user: Dict[str, Any]) -> Dict[str, Any]:
         # If anything goes wrong, don't block app launch.
         pass
 
+
+    # Events timeline (v0.40+): global + per-agent events for judge-proof audit trails.
+    try:
+        from .events import ensure_events_schema
+        ensure_events_schema(user)
+    except Exception:
+        pass
+
     return user
 
 

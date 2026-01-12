@@ -108,18 +108,33 @@ def render_sidebar(user: Dict[str, Any], *, active_page: str = "") -> None:
         soft_divider()
 
         st.markdown("**Pages**")
-        st.page_link("app.py", label="Home")
-        st.page_link("pages/agents.py", label="Agents")
-        st.page_link("pages/compare.py", label="Compare")
-        st.page_link("pages/coach.py", label="Coach")
-        st.page_link("pages/chat.py", label="Chat")
-        st.page_link("pages/market.py", label="Market")
-        st.page_link("pages/safety.py", label="Safety")
-        st.page_link("pages/pricing.py", label="Pricing")
-        st.page_link("pages/quests.py", label="Quests")
-        st.page_link("pages/shop.py", label="Shop")
-        st.page_link("pages/social.py", label="Social")
-        st.page_link("pages/profile.py", label="Profile")
+        
+        # --- Quick nav (kept short on purpose) ---
+        st.page_link("app.py", label="🏠 Home")
+        st.page_link("pages/market.py", label="📈 Market")
+        st.page_link("pages/coach.py", label="🤖 Coach")
+        st.page_link("pages/agents.py", label="🧠 Agents")
+
+        soft_divider()
+
+        # --- More pages (searchable + scrollable) ---
+        from crowdlike.registry import all_pages
+
+        with st.expander("⋯ More pages", expanded=False):
+            q = st.text_input("Search", key=f"sb_search_{active_page}", placeholder="Type to filter…")
+            pages = [p for p in all_pages() if p.path not in ("app.py","pages/market.py","pages/coach.py","pages/agents.py")]
+            ql = (q or "").strip().lower()
+            if ql:
+                pages = [p for p in pages if ql in (f"{p.label} {p.group} {p.desc}").lower()]
+
+            st.markdown('<div style="max-height:360px; overflow-y:auto; padding-right:6px;">', unsafe_allow_html=True)
+            last_group = None
+            for p in pages:
+                if last_group != p.group:
+                    st.markdown(f"**{p.group}**")
+                    last_group = p.group
+                st.page_link(p.path, label=f"{p.icon} {p.label}".strip())
+            st.markdown("</div>", unsafe_allow_html=True)
 
         soft_divider()
         if st.button("Log out", key=f"sb_logout_{active_page}"):

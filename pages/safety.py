@@ -9,6 +9,8 @@ from crowdlike.market_data import get_markets
 from crowdlike.performance import portfolio_value
 from crowdlike.safety import trigger_panic, set_fraud_alert, check_safety_triggers, safety_exit
 from crowdlike.layout import render_sidebar
+from crowdlike.events import log_event
+
 
 
 st.set_page_config(page_title="Safety", page_icon="🛡️", layout="wide")

@@ -11,6 +11,7 @@ from crowdlike.agents import get_active_agent, agent_label
 from crowdlike.market_data import get_markets, get_market_chart_7d
 from crowdlike.policy import PaymentPolicy
 from crowdlike.layout import render_sidebar
+from crowdlike.events import log_event
 from crowdlike.arc import (
     cast_usdc_transfer_cmd,
     get_tx_receipt,
@@ -184,6 +185,7 @@ with tab_practice:
                         portfolio["trades"].insert(0, {"side": "BUY", "coin": coin, "cash": float(amt), "qty": qty, "price": px})
                         grant_xp(user, 45, "Market", "Practice BUY")
                         log_activity(user, f"Practice BUY {coin} (${amt:.2f})", icon="📈")
+                        log_event(user, kind="trade", title=f"Practice BUY {coin}", details=f"${amt:.2f} on {coin}", severity="info", agent_id=str(active_agent.get("id")))
                         save_current_user()
                         st.success("Done ✅")
                         st.rerun()
@@ -197,6 +199,7 @@ with tab_practice:
                         portfolio["trades"].insert(0, {"side": "SELL", "coin": coin, "cash": float(amt), "qty": qty, "price": px})
                         grant_xp(user, 45, "Market", "Practice SELL")
                         log_activity(user, f"Practice SELL {coin} (${amt:.2f})", icon="📉")
+                        log_event(user, kind="trade", title=f"Practice SELL {coin}", details=f"${amt:.2f} on {coin}", severity="info", agent_id=str(active_agent.get("id")))
                         save_current_user()
                         st.success("Done ✅")
                         st.rerun()
@@ -349,11 +352,13 @@ with tab_checkout:
                     receipt = get_tx_receipt(rpc_url, txh)
                     if not receipt:
                         st.warning("Receipt not found yet. Wait ~10–20s and try again.")
+                        log_event(user, kind="receipt", title="Receipt not found yet", details=f"{txh}", severity="warn", agent_id=str(active_agent.get("id")))
                     else:
                         # Require success status
                         status = str(receipt.get("status", "")).lower()
                         if status not in ("0x1", "1", "true"):
                             st.error("Transaction failed (status not successful).")
+                            log_event(user, kind="receipt", title="Receipt failed", details=f"{txh} (status {status})", severity="danger", agent_id=str(active_agent.get("id")))
                         else:
                             ok, msg = verify_erc20_transfer(
                                 receipt=receipt,

@@ -7,6 +7,8 @@ from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, grant_xp, add_notification, log_activity
 from crowdlike.layout import render_sidebar
+from crowdlike.events import log_event
+
 
 st.set_page_config(page_title="Quests", page_icon="🧭", layout="wide")
 apply_ui()
@@ -103,6 +105,7 @@ for idx, q in enumerate(quests):
                     claimed.append(q["id"])
                     user["coins"] = int(user.get("coins", 0) or 0) + int(q["coins"])
                     grant_xp(user, int(q["xp"]), "Quest", q["title"])
+                    log_event(user, kind="quest", title="Quest claimed", details=str(q.get("title","")), severity="success", agent_id=str(user.get("active_agent_id") or ""))
                     # Small crowd score bump for completing quests
                     crowd = user.setdefault("crowd", {"score": 50.0, "likes_received": 0, "likes_given": 0})
                     crowd["score"] = float(crowd.get("score", 50.0)) + 1.5

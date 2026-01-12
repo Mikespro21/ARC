@@ -1,12 +1,15 @@
 import streamlit as st
 
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, callout
+from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, callout, event_feed
 from crowdlike.settings import bool_setting
 from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, grant_xp, add_notification, log_activity, compute_streak, xp_progress
 from crowdlike.agents import get_active_agent, agent_label
 from crowdlike.layout import render_sidebar
+from crowdlike.events import log_event, recent_events
+from crowdlike.orchestrator import propose_next_action, decide_auto_execute
+
 
 st.set_page_config(page_title="Coach", page_icon="🤖", layout="wide")
 apply_ui()
@@ -28,6 +31,116 @@ _demo = bool_setting("DEMO_MODE", True)
 _wallet_set = bool(((user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}).get("address"))
 _crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
+
+
+# --- Agent Command Console ---
+st.markdown("## Agent command console")
+st.caption("Generate proposals, approve actions, and keep a clean audit trail. Payments always require confirmation.")
+
+# Agent mode (per-agent, overrides user-level)
+mode = str(active_agent.get("mode") or "assist")
+mode = st.select_slider(
+    "Autonomy mode",
+    options=["off", "assist", "auto"],
+    value=mode if mode in ("off","assist","auto") else "assist",
+    help="assist = proposes actions requiring approval. auto = can auto-execute *trades* only (payments still require confirmation).",
+)
+active_agent["mode"] = mode
+
+cA, cB, cC = st.columns([1,1,2])
+with cA:
+    if st.button("Generate next action", type="primary", use_container_width=True, disabled=(mode=="off")):
+        p = propose_next_action(user, active_agent)
+        if p:
+            log_event(user, kind="agent", title="Agent proposed an action", details=p.get("title",""), severity="info", agent_id=str(active_agent.get("id")))
+            st.toast("Proposal generated.", icon="🧠")
+        else:
+            st.toast("Nothing to propose right now.", icon="✅")
+        save_current_user(user)
+        st.rerun()
+
+with cB:
+    if st.button("Clear pending", use_container_width=True):
+        active_agent["approvals"] = []
+        log_event(user, kind="agent", title="Cleared pending proposals", details="", severity="warn", agent_id=str(active_agent.get("id")))
+        save_current_user(user)
+        st.rerun()
+
+with cC:
+    st.caption("Tip: in demos, generate 1 proposal, approve it, then show the Activity feed on Home.")
+
+pending = active_agent.get("approvals") if isinstance(active_agent.get("approvals"), list) else []
+if pending:
+    st.markdown("### Pending approvals")
+    for i, p in enumerate(list(pending)):
+        with st.container():
+            st.markdown(f"**{p.get('title','(proposal)')}**")
+            st.caption(f"{p.get('type','')} · {p.get('ts','')}")
+            col1, col2, col3 = st.columns([1,1,3])
+            with col1:
+                if st.button("Approve", key=f"appr_ok_{i}", use_container_width=True):
+                    # Demo execution
+                    typ = p.get("type")
+                    port = active_agent.get("portfolio") if isinstance(active_agent.get("portfolio"), dict) else {}
+                    cash = float(port.get("cash_usdc", 0.0) or 0.0)
+                    if typ == "trade":
+                        payload = p.get("payload") or {}
+                        asset = payload.get("asset","BTC")
+                        side = payload.get("side","BUY")
+                        qty = float(payload.get("qty", 0.0) or 0.0)
+                        px = 100.0  # placeholder demo price index
+                        notional = qty * px
+                        pos = port.get("positions") if isinstance(port.get("positions"), dict) else {}
+                        cur_qty = float((pos.get(asset) or {}).get("qty", 0.0) or 0.0)
+                        if side == "BUY":
+                            if cash >= notional:
+                                cash -= notional
+                                cur_qty += qty
+                            else:
+                                st.warning("Not enough demo cash for this trade.")
+                        else:
+                            sell_qty = min(cur_qty, qty)
+                            cur_qty -= sell_qty
+                            cash += sell_qty * px
+                        pos[asset] = {"qty": round(cur_qty, 6), "avg": px}
+                        port["positions"] = pos
+                        port["cash_usdc"] = round(cash, 2)
+                        trades = port.get("trades") if isinstance(port.get("trades"), list) else []
+                        trades.insert(0, {"ts": p.get("ts"), "asset": asset, "side": side, "qty": qty, "price": px, "notional": round(notional,2)})
+                        port["trades"] = trades[:200]
+                        active_agent["portfolio"] = port
+                        log_event(user, kind="trade", title=f"Approved {side} {qty} {asset}", details=f"~${notional:.2f} (demo)", severity="success", agent_id=str(active_agent.get("id")))
+                    elif typ == "payment":
+                        amt = float(((p.get("payload") or {}).get("amount_usdc")) or 0.0)
+                        log_event(user, kind="payment", title="Payment requires manual checkout", details=f"Proposed ${amt:.2f} USDC — go to Market → Checkout.", severity="warn", agent_id=str(active_agent.get("id")))
+                    else:
+                        log_event(user, kind="agent", title="Approved proposal", details=str(p.get("title","")), severity="success", agent_id=str(active_agent.get("id")))
+                    # remove proposal
+                    try:
+                        active_agent["approvals"].remove(p)
+                    except Exception:
+                        pass
+                    save_current_user(user)
+                    st.rerun()
+            with col2:
+                if st.button("Reject", key=f"appr_no_{i}", use_container_width=True):
+                    try:
+                        active_agent["approvals"].remove(p)
+                    except Exception:
+                        pass
+                    log_event(user, kind="agent", title="Rejected proposal", details=str(p.get("title","")), severity="info", agent_id=str(active_agent.get("id")))
+                    save_current_user(user)
+                    st.rerun()
+            with col3:
+                st.caption("Approving trades executes a demo portfolio change. Payments route you to Checkout.")
+            soft_divider()
+else:
+    st.caption("No pending proposals. Generate one to show the full agent loop.")
+
+soft_divider()
+event_feed(recent_events(user, agent_id=str(active_agent.get("id")), limit=12), title="Agent activity")
+
+
 
 
 # Simple chat state

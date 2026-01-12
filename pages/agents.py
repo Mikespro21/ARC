@@ -16,6 +16,8 @@ from crowdlike.market_data import get_markets
 from crowdlike.performance import portfolio_value, ensure_daily_snapshot, returns_windows, since_inception
 from crowdlike.strategy import STRATEGY_TEMPLATES, apply_template, copy_strategy
 from crowdlike.layout import render_sidebar
+from crowdlike.events import log_event
+
 
 
 st.set_page_config(page_title="Agents", page_icon="🤖", layout="wide")

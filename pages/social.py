@@ -7,6 +7,8 @@ from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, add_notification, log_activity
 from crowdlike.layout import render_sidebar
+from crowdlike.events import log_event
+
 
 st.set_page_config(page_title="Social", page_icon="🫶", layout="wide")
 apply_ui()
@@ -90,6 +92,7 @@ with st.form("post_form", clear_on_submit=True):
         else:
             feed.insert(0, {"id": str(uuid.uuid4()), "author": user.get("username", "Member"), "text": msg[:280], "likes": 0})
             log_activity(user, "Posted an update", icon="🫶")
+            log_event(user, kind="social", title="New post", details=msg[:80], severity="info", agent_id=str(user.get("active_agent_id") or ""))
             save_current_user()
             st.success("Posted.")
             st.rerun()

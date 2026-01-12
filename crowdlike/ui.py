@@ -446,6 +446,7 @@ def button_style(key: str, variant: str) -> None:
     palette = {
         # Neutral / nav
         "white": ("rgba(255,255,255,0.92)", "rgba(255,255,255,0.92)", "rgba(148,163,184,0.18)"),
+        "ghost": ("rgba(255,255,255,0.00)", "rgba(255,255,255,0.86)", "rgba(148,163,184,0.12)"),
         # Primary
         "blue": ("rgba(14,165,233,0.16)", "rgba(255,255,255,0.86)", "rgba(14,165,233,0.28)"),
         # Accent (use sparingly)
@@ -474,50 +475,106 @@ def button_style(key: str, variant: str) -> None:
 
 
 def nav(active: str = "Home") -> None:
-    """Top nav split into small rows to keep it readable."""
-    # Keep "Coach" easily discoverable: judges often ask "where is the agent?"
-    row1 = [
-        ("Home", "app.py", "nav_home"),
-        ("Agents", "pages/agents.py", "nav_agents"),
-        ("Market", "pages/market.py", "nav_market"),
-        ("Coach", "pages/coach.py", "nav_coach"),
-        ("Chat", "pages/chat.py", "nav_chat"),
-    ]
-    row2 = [
-        ("Compare", "pages/compare.py", "nav_compare"),
-        ("Safety", "pages/safety.py", "nav_safety"),
-        ("Pricing", "pages/pricing.py", "nav_pricing"),
-        ("Profile", "pages/profile.py", "nav_profile"),
-    ]
-    row3 = [
-        ("Quests", "pages/quests.py", "nav_quests"),
-        ("Shop", "pages/shop.py", "nav_shop"),
-        ("Social", "pages/social.py", "nav_social"),
-    ]
+    """Top nav with a short row + expandable 'More' drawer.
 
-    cols = st.columns(len(row1))
-    for i, (label, path, k) in enumerate(row1):
+    UX goals:
+    - Judges see only the important pages.
+    - Everything else is discoverable via a searchable drawer.
+    - The drawer is scrollable so it never overflows.
+    """
+    from crowdlike.registry import core_pages, search_pages, groups
+
+    core = core_pages()
+    # Core buttons + a More button
+    cols = st.columns(len(core) + 1)
+
+    for i, p in enumerate(core):
         with cols[i]:
-            button_style(k, "active" if label == active else "white")
-            if st.button(label, key=k, use_container_width=True):
-                st.switch_page(path)
+            button_style(f"nav_{p.id}", "active" if p.label == active else "white")
+            if st.button(f"{p.icon} {p.label}".strip(), key=f"nav_{p.id}", use_container_width=True):
+                st.switch_page(p.path)
 
-    cols2 = st.columns(len(row2))
-    for i, (label, path, k) in enumerate(row2):
-        with cols2[i]:
-            button_style(k, "active" if label == active else "white")
-            if st.button(label, key=k, use_container_width=True):
-                st.switch_page(path)
+    # Expandable drawer
+    with cols[-1]:
+        # Prefer popover if available, else expander.
+        label = "⋯ More"
+        try:
+            pop = st.popover(label, use_container_width=True)
+        except Exception:
+            pop = st.expander(label)
 
-    cols3 = st.columns(len(row3))
-    for i, (label, path, k) in enumerate(row3):
-        with cols3[i]:
-            button_style(k, "active" if label == active else "white")
-            if st.button(label, key=k, use_container_width=True):
-                st.switch_page(path)
+        with pop:
+            st.caption("Search and jump to any page.")
+            q = st.text_input("Search pages", key="nav_search", placeholder="e.g., Pricing, Safety, Social…")
+            pages = search_pages(q)
 
-    st.markdown('<div class="divider-soft" style="margin-top:0.65rem;margin-bottom:0.55rem;"></div>', unsafe_allow_html=True)
+            # Grouped + scrollable list
+            st.markdown(
+                '<div style="max-height:320px; overflow-y:auto; padding-right:6px;">',
+                unsafe_allow_html=True,
+            )
+            last_group = None
+            for p in pages:
+                if last_group != p.group:
+                    st.markdown(f"**{p.group}**")
+                    last_group = p.group
+                button_style(f"nav_more_{p.id}", "active" if p.label == active else "ghost")
+                if st.button(f"{p.icon} {p.label}".strip(), key=f"nav_more_{p.id}", use_container_width=True):
+                    st.switch_page(p.path)
+            st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown('<div style="margin-top:0.35rem; margin-bottom:0.55rem;"></div>', unsafe_allow_html=True)
 
 def bg_ratio() -> dict:
     return dict(_BG_RATIO)
+
+
+def event_feed(events: list[dict], title: str = "Recent activity", *, compact: bool = True) -> None:
+    """Render an event timeline (newest first)."""
+    if title:
+        st.markdown(f"### {title}")
+    if not events:
+        st.caption("No activity yet. Make a trade, run the coach, or verify a receipt.")
+        return
+
+    icon_for = {
+        "trade": "📈",
+        "payment": "💸",
+        "receipt": "🧾",
+        "quest": "🧩",
+        "social": "❤️",
+        "agent": "🧠",
+        "safety": "🛡️",
+        "system": "⚙️",
+        "event": "🫧",
+    }
+    sev_border = {
+        "info": "rgba(148,163,184,0.18)",
+        "success": "rgba(34,197,94,0.22)",
+        "warn": "rgba(245,158,11,0.22)",
+        "danger": "rgba(239,68,68,0.22)",
+    }
+
+    for e in events[:60]:
+        kind = str(e.get("kind") or "event")
+        icon = icon_for.get(kind, "🫧")
+        sev = str(e.get("severity") or "info")
+        border = sev_border.get(sev, sev_border["info"])
+        title_line = str(e.get("title") or "")
+        details = str(e.get("details") or "")
+        ts = str(e.get("ts") or "")
+        st.markdown(
+            f'''
+<div class="card" style="border:1px solid {border}; padding: 10px 12px; margin-bottom: 10px;">
+  <div style="display:flex; gap:10px; align-items:flex-start;">
+    <div style="font-size:1.2rem; line-height:1.2">{icon}</div>
+    <div style="flex:1">
+      <div style="font-weight:800">{title_line}</div>
+      <div style="color:var(--muted); font-size:0.92rem; margin-top:2px">{details}</div>
+      <div style="color:var(--muted); font-size:0.78rem; margin-top:6px">{ts}</div>
+    </div>
+  </div>
+</div>
+''',
+            unsafe_allow_html=True,
+        )

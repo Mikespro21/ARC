@@ -41,6 +41,9 @@ def new_agent(name: str, emoji: str = "🤖") -> Dict[str, Any]:
         "portfolio": {"cash_usdc": 1000.0, "positions": {}, "trades": []},
         "purchases": [],
         "chat": [],  # [{role,content,ts}]
+        "events": [],
+        "approvals": [],
+        "mode": "assist",
         "value_history": [{"d": _today(), "v": 1000.0}],
         "safety": {
             "fraud_alert": False,
@@ -77,6 +80,9 @@ def ensure_agent_schema(agent: Dict[str, Any]) -> Dict[str, Any]:
 
     agent.setdefault("purchases", [])
     agent.setdefault("chat", [])
+    agent.setdefault("events", [])
+    agent.setdefault("approvals", [])
+    agent.setdefault("mode", "assist")
 
     if not isinstance(agent.get("value_history"), list):
         agent["value_history"] = []
@@ -180,6 +186,11 @@ def create_agent(user: Dict[str, Any], name: str, emoji: str = "🤖") -> Dict[s
     a = new_agent(name=name, emoji=emoji or "🤖")
     user["agents"].insert(0, a)
     user["active_agent_id"] = a["id"]
+    try:
+        from crowdlike.events import log_event
+        log_event(user, kind="agent", title="Created agent", details=f"{a.get('emoji','🤖')} {a.get('name','Agent')}", severity="success", agent_id=str(a.get("id")))
+    except Exception:
+        pass
     return a
 
 
@@ -199,4 +210,9 @@ def delete_agent(user: Dict[str, Any], agent_id: str) -> bool:
     if not agents:
         ensure_agents_schema(user)
 
+    try:
+        from crowdlike.events import log_event
+        log_event(user, kind="agent", title="Deleted agent", details=str(agent_id), severity="danger", agent_id=str(agent_id))
+    except Exception:
+        pass
     return True

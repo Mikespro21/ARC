@@ -1,13 +1,15 @@
 import streamlit as st
 
 from crowdlike.settings import bool_setting
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, xp_bar, button_style, status_bar, metric_card, callout
+from crowdlike.ui import apply_ui, hero, nav, soft_divider, xp_bar, button_style, status_bar, metric_card, callout, event_feed
 from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user, logout
 from crowdlike.game import xp_progress, compute_streak, record_visit, ensure_user_schema
 from crowdlike.agents import get_active_agent, get_agents, agent_label
 from crowdlike.layout import render_sidebar
 from crowdlike.version import VERSION
+from crowdlike.events import recent_events
+
 
 st.set_page_config(page_title="Crowdlike", page_icon="🫧", layout="wide")
 apply_ui()
@@ -114,6 +116,27 @@ with cta3:
         st.switch_page("pages/compare.py")
 
 soft_divider()
+
+# --- Command Center: approvals + activity ---
+soft_divider()
+left, right = st.columns([2, 1])
+
+with left:
+    event_feed(recent_events(user, agent_id=str(active_agent.get("id")), limit=18), title="Recent activity")
+
+with right:
+    st.markdown("### Next actions")
+    pending = active_agent.get("approvals") if isinstance(active_agent.get("approvals"), list) else []
+    st.metric("Pending approvals", str(len(pending)))
+    st.caption("Use Coach to generate proposals and approve actions.")
+    if st.button("Open Coach", type="primary", use_container_width=True):
+        st.switch_page("pages/coach.py")
+    st.markdown("")
+    st.markdown("### Demo readiness")
+    r = {"wallet": bool(wallet_addr), "agents": bool(get_agents(user))}
+    st.checkbox("Wallet set", value=r["wallet"], disabled=True)
+    st.checkbox("At least 1 agent", value=r["agents"], disabled=True)
+    st.checkbox("1 action approved", value=any((e.get("kind")=="trade" and e.get("severity")=="success") for e in (user.get("events") or [])), disabled=True)
 
 tab1, tab2, tab3 = st.tabs(["Explore", "Activity", "Updates"])
 
