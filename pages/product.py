@@ -6,7 +6,7 @@ from crowdlike.version import VERSION
 st.set_page_config(page_title="Crowdlike — Product", page_icon="✨", layout="wide")
 apply_ui()
 
-site_header(active="Product")
+site_header(active="product")
 
 
 site_hero(kicker=f"Crowdlike v{VERSION}", title="Product", subtitle="A production-feel demo for agentic payments guided by crowd likability—designed for clarity, safety, and judged UX.")

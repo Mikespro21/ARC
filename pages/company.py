@@ -6,7 +6,7 @@ from crowdlike.version import VERSION
 st.set_page_config(page_title="Crowdlike — Company", page_icon="🏢", layout="wide")
 apply_ui()
 
-site_header(active="Company")
+site_header(active="company")
 
 
 site_hero(kicker=f"Crowdlike v{VERSION}", title="Company", subtitle="What Crowdlike is building and why: safe agentic commerce with human-aligned controls.")

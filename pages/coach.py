@@ -3,7 +3,6 @@ import streamlit as st
 from crowdlike.ui import (
     apply_ui,
     hero,
-    nav,
     soft_divider,
     status_bar,
     callout,
@@ -42,8 +41,6 @@ wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else
 _wallet_set = bool((wallet.get("address") or "").strip())
 _crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(_crowd.get("score", 50.0) or 50.0))
-
-nav(active="Launch App")
 flow_banner(user, active="Run a cycle")
 
 active_agent = get_active_agent(user)

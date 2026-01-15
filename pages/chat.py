@@ -2,7 +2,7 @@ import datetime as dt
 
 import streamlit as st
 
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, callout, button_style
+from crowdlike.ui import apply_ui, hero, soft_divider, status_bar, callout, button_style
 from crowdlike.settings import bool_setting
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, grant_xp
@@ -28,8 +28,6 @@ wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else
 _wallet_set = bool((wallet.get("address") or "").strip())
 crowd = user.get("crowd") if isinstance(user.get("crowd"), dict) else {}
 status_bar(wallet_set=_wallet_set, demo_mode=_demo, crowd_score=float(crowd.get("score", 50.0) or 50.0))
-
-nav(active="Launch App")
 
 agents = get_agents(user)
 active = get_active_agent(user)

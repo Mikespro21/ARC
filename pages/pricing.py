@@ -11,7 +11,7 @@ from crowdlike.version import VERSION
 st.set_page_config(page_title="Crowdlike — Pricing", page_icon="💳", layout="wide")
 apply_ui()
 
-site_header(active="Pricing")
+site_header(active="pricing")
 
 
 site_hero(kicker=f"Crowdlike v{VERSION}", title="Pricing", subtitle="Transparent demo tiers for autonomy, limits, approvals, and enterprise-style guardrails—no surprises, just control.")
@@ -55,10 +55,8 @@ callout(
 
 c1, c2 = st.columns([1.0, 1.0], gap="large")
 with c1:
-    if st.button("🚀 Launch App", key="pricing_launch", use_container_width=True):
-        st.switch_page("pages/dashboard.py")
+    st.page_link("pages/dashboard.py", label="🚀 Dashboard", use_container_width=True)
 with c2:
-    if st.button("🧭 Guided Journey", key="pricing_journey", use_container_width=True):
-        st.switch_page("pages/journey.py")
+    st.page_link("pages/journey.py", label="🧭 Guided Journey", use_container_width=True)
 
 site_footer()

@@ -3,7 +3,7 @@ import streamlit as st
 
 from crowdlike.settings import bool_setting
 
-from crowdlike.ui import apply_ui, hero, nav, link_button, soft_divider, status_bar, callout, button_style, metric_card
+from crowdlike.ui import apply_ui, hero, link_button, soft_divider, status_bar, callout, button_style, metric_card
 from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user, logout
 from crowdlike.arc import (
@@ -42,7 +42,6 @@ record_visit(user, "profile")
 render_sidebar(user, active_page="profile")
 save_current_user()
 
-nav(active="Launch App")
 flow_banner(user, active="Add your wallet")
 
 hero("🧑‍🚀 Profile", "Identity, wallet, and autonomy settings.", badge="Settings")

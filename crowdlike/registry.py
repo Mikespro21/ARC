@@ -35,7 +35,7 @@ PAGES: List[Page] = [
     Page("product", "Product", "pages/product.py", "✨", "Website", True, 2, "What Crowdlike is"),
     Page("pricing", "Pricing", "pages/pricing.py", "💳", "Website", True, 3, "Per-day estimator"),
     Page("docs", "Docs", "pages/docs.py", "📚", "Website", True, 4, "Quickstart + FAQ"),
-    Page("dashboard", "Launch App", "pages/dashboard.py", "🚀", "Website", True, 5, "App dashboard"),
+    Page("dashboard", "Dashboard", "pages/dashboard.py", "🚀", "App", True, 5, "App dashboard"),
 
     # App (workflow)
     Page("journey", "Journey", "pages/journey.py", "🧭", "App", False, 10, "Guided setup wizard"),

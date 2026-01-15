@@ -2,7 +2,7 @@ import streamlit as st
 import datetime as _dt
 
 
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, link_button, status_bar, stepper, copy_to_clipboard, callout
+from crowdlike.ui import apply_ui, hero, soft_divider, link_button, status_bar, stepper, copy_to_clipboard, callout
 from crowdlike.settings import bool_setting
 from crowdlike.tour import maybe_run_tour, tour_complete_step
 from crowdlike.auth import require_login, save_current_user
@@ -37,7 +37,6 @@ render_sidebar(user, active_page="market")
 
 active_agent = get_active_agent(user)
 
-nav(active="Launch App")
 flow_banner(user, active="Verify a receipt")
 
 hero("📈 Market", "Live prices, practice trading, and a judge-friendly USDC testnet checkout flow.", badge=agent_label(active_agent))

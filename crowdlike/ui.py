@@ -92,6 +92,86 @@ def apply_ui() -> None:
     section[data-testid="stSidebar"]{
         background: rgba(255,255,255,0.92);
         border-right: 1px solid rgba(148,163,184,0.14);
+        width: 280px;
+        min-width: 280px;
+        max-width: 280px;
+        overflow: hidden;
+        transition: width 220ms ease, min-width 220ms ease, max-width 220ms ease;
+    }
+
+    /* --- Sidebar nav rail (scrollable) --- */
+    .cl-nav-brand{
+        display:flex; align-items:center; gap: 10px;
+        padding: 12px 10px 10px 10px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid rgba(148,163,184,0.14);
+    }
+    .cl-nav-logo{ font-size: 1.25rem; line-height: 1; }
+    .cl-nav-title{ font-weight: 820; letter-spacing: -0.02em; }
+    .cl-nav-sub{ color: var(--muted); font-size: 0.82rem; margin-top: -2px; }
+
+    .cl-nav-scroll{
+        max-height: calc(100vh - 92px);
+        overflow-y: auto;
+        padding: 6px 8px 14px 8px;
+    }
+
+    .cl-nav-group{
+        margin-top: 12px;
+        margin-bottom: 6px;
+        font-size: 0.78rem;
+        font-weight: 750;
+        color: rgba(100,116,139,0.90);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    /* Tighten page_link spacing inside the sidebar */
+    section[data-testid="stSidebar"] a{
+        display: block;
+        padding: 8px 10px;
+        border-radius: 10px;
+        margin: 2px 0;
+        text-decoration: none !important;
+        color: var(--text) !important;
+    }
+    section[data-testid="stSidebar"] a:hover{
+        background: rgba(14,165,233,0.08);
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.10);
+    }
+
+    /* Toggle control (not a Streamlit button) */
+    #cl-nav-toggle{
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 99999;
+        width: 42px;
+        height: 42px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        border-radius: 12px;
+        border: 1px solid rgba(148,163,184,0.22);
+        background: rgba(255,255,255,0.92);
+        box-shadow: 0 10px 22px rgba(15,23,42,0.08);
+        cursor: pointer;
+        user-select: none;
+        transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+    #cl-nav-toggle:hover{ transform: translateY(-1px); box-shadow: 0 14px 28px rgba(15,23,42,0.10); }
+
+    /* Hide/show behavior driven by JS (scroll + manual toggle) */
+    body.cl-nav-hidden section[data-testid="stSidebar"]{
+        width: 0px !important;
+        min-width: 0px !important;
+        max-width: 0px !important;
+        border-right: none !important;
+    }
+    body.cl-nav-hidden section[data-testid="stSidebar"] *{
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease;
     }
 
     /* Typography tightening (subtle) */

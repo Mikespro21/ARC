@@ -55,12 +55,10 @@ with left:
 with right:
     st.markdown("### Start here")
     st.write("If you're demoing or evaluating, the fastest path is the guided Journey.")
-    if st.button("🚀 Launch App", key="home_launch_app", use_container_width=True):
-        st.switch_page("pages/dashboard.py")
-    if st.button("🧭 Guided Journey", key="home_go_journey", use_container_width=True):
-        st.switch_page("pages/journey.py")
-    if st.button("📚 Read the Docs", key="home_go_docs", use_container_width=True):
-        st.switch_page("pages/docs.py")
+    # No navigation buttons: use page links and the left nav rail.
+    st.page_link("pages/dashboard.py", label="🚀 Dashboard", use_container_width=True)
+    st.page_link("pages/journey.py", label="🧭 Guided Journey", use_container_width=True)
+    st.page_link("pages/docs.py", label="📚 Docs", use_container_width=True)
 
 soft_divider()
 

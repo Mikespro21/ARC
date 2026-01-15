@@ -7,7 +7,7 @@ from crowdlike.version import VERSION
 st.set_page_config(page_title="Crowdlike — Docs", page_icon="📚", layout="wide")
 apply_ui()
 
-site_header(active="Docs")
+site_header(active="docs")
 
 
 site_hero(kicker=f"Crowdlike v{VERSION}", title="Docs", subtitle="Quick-start guides, mental models, and workflows—optimized for judges and first-time users.")

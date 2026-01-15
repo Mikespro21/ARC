@@ -2,7 +2,7 @@ import uuid
 import streamlit as st
 
 from crowdlike.settings import bool_setting
-from crowdlike.ui import apply_ui, hero, nav, soft_divider, status_bar, metric_card, callout, button_style, xp_bar
+from crowdlike.ui import apply_ui, hero, soft_divider, status_bar, metric_card, callout, button_style, xp_bar
 from crowdlike.tour import maybe_run_tour
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.game import ensure_user_schema, record_visit, add_notification, log_activity
@@ -25,7 +25,6 @@ _demo = bool_setting("DEMO_MODE", True)
 wallet = (user.get("wallet") or {}) if isinstance(user.get("wallet"), dict) else {}
 wallet_set = bool((wallet.get("address") or "").strip())
 
-nav(active="Launch App")
 hero("🫶 Social", "Likes are the crowd feedback loop — they gently influence what your agent can do.", badge="Crowd")
 
 crowd = user.setdefault("crowd", {"score": 50.0, "likes_received": 0, "likes_given": 0})

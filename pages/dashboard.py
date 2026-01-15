@@ -1,6 +1,6 @@
 import streamlit as st
 
-from crowdlike.ui import apply_ui, button_style, callout, hero, metric_card, nav, soft_divider
+from crowdlike.ui import apply_ui, callout, hero, metric_card, soft_divider
 from crowdlike.layout import render_sidebar
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.agents import get_active_agent, get_agents
@@ -18,15 +18,10 @@ ensure_user_schema(user)
 # v{VERSION}: onboarding gate
 if not st.session_state.get("onboard_complete") and not user.get("onboarded"):
     callout("You are in a fresh cloud session. Complete onboarding once for the smoothest flow.", tone="warning")
-    button_style("dash_start_onb", "purple")
-    if st.button("Start onboarding", key="dash_start_onb", use_container_width=True):
-        st.switch_page("pages/journey.py")
+    st.page_link("pages/journey.py", label="Start onboarding →", use_container_width=True)
     soft_divider()
 
-render_sidebar(user)
-
-# Highlight "Launch App" in the website-style top nav
-nav(active="dashboard")
+render_sidebar(user, active_page="dashboard")
 
 
 hero('Dashboard', subtitle='Your live control panel: agent status, risk posture, recent activity, and next actions.')
@@ -51,14 +46,11 @@ soft_divider()
 
 a, b, c = st.columns([1.0, 1.0, 1.0], gap="large")
 with a:
-    if st.button("🧠 Manage agents", key="dash_agents", use_container_width=True):
-        st.switch_page("pages/agents.py")
+    st.page_link("pages/agents.py", label="🧠 Manage agents", use_container_width=True)
 with b:
-    if st.button("🤖 Run in Coach", key="dash_coach", use_container_width=True):
-        st.switch_page("pages/coach.py")
+    st.page_link("pages/coach.py", label="🤖 Run in Coach", use_container_width=True)
 with c:
-    if st.button("📈 Market / Checkout", key="dash_market", use_container_width=True):
-        st.switch_page("pages/market.py")
+    st.page_link("pages/market.py", label="📈 Market / Checkout", use_container_width=True)
 
 soft_divider()
 
