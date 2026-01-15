@@ -490,8 +490,33 @@ p{ margin: 0 0 var(--space-3) 0; }
     background: rgba(255,255,255,0.86);
     box-shadow: var(--shadow-soft);
 }
-.button-stack .stButton{ margin-top: var(--space-3); }
+.button-stack .stButton{ margin-top: var(--space-2); }
 .button-row{ display:flex; gap: var(--space-4); align-items:center; flex-wrap:wrap; }
+
+
+
+/* Compact navigation option lists (popovers / menus) */
+div[data-testid="stPopover"], div[data-testid="stPopoverBody"], .stPopover {
+  --nav-item-y: 0.10rem;
+}
+div[data-testid="stPopover"] .stButton,
+div[data-testid="stPopoverBody"] .stButton,
+.stPopover .stButton {
+  margin-top: var(--nav-item-y) !important;
+  margin-bottom: var(--nav-item-y) !important;
+}
+div[data-testid="stPopover"] .stButton > button,
+div[data-testid="stPopoverBody"] .stButton > button,
+.stPopover .stButton > button {
+  padding: 0.46rem 0.70rem !important;
+  border-radius: 12px !important;
+}
+div[data-testid="stPopover"] p,
+div[data-testid="stPopoverBody"] p,
+.stPopover p {
+  margin-bottom: 0.35rem !important;
+}
+
 
 /* Grid rails: consistent gaps & snap-to-columns feel */
 div[data-testid="stHorizontalBlock"]{ gap: var(--grid-col-gap) !important; align-items: flex-start; }
