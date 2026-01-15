@@ -1,12 +1,13 @@
 import streamlit as st
 
-from crowdlike.ui import apply_ui, nav, soft_divider, callout, metric_card, button_style
+from crowdlike.ui import apply_ui, button_style, callout, hero, metric_card, nav, soft_divider
 from crowdlike.layout import render_sidebar
 from crowdlike.auth import require_login, save_current_user
 from crowdlike.agents import get_active_agent, get_agents
 from crowdlike.events import recent_events
 from crowdlike.ui import event_feed
 from crowdlike.game import ensure_user_schema
+from crowdlike.version import VERSION
 
 st.set_page_config(page_title="Crowdlike — Dashboard", page_icon="🚀", layout="wide")
 apply_ui()
@@ -14,7 +15,7 @@ apply_ui()
 user = require_login("Crowdlike")
 ensure_user_schema(user)
 
-# v1.5: onboarding gate
+# v{VERSION}: onboarding gate
 if not st.session_state.get("onboard_complete") and not user.get("onboarded"):
     callout("You are in a fresh cloud session. Complete onboarding once for the smoothest flow.", tone="warning")
     button_style("dash_start_onb", "purple")
@@ -27,6 +28,8 @@ render_sidebar(user)
 # Highlight "Launch App" in the website-style top nav
 nav(active="dashboard")
 
+
+hero('Dashboard', subtitle='Your live control panel: agent status, risk posture, recent activity, and next actions.')
 st.markdown("## Dashboard")
 
 agents = get_agents(user)
@@ -59,6 +62,6 @@ with c:
 
 soft_divider()
 
-event_feed(recent_events(user, active), title="Recent activity", compact=True)
+event_feed(recent_events(user, agent_id=active), title="Recent activity", compact=True)
 
 save_current_user()

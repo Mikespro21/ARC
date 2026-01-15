@@ -5,6 +5,7 @@ import streamlit as st
 from crowdlike.registry import all_pages, Page
 from crowdlike.auth import current_user
 from crowdlike.ui import button_style
+from crowdlike.version import VERSION
 
 
 NAV = [
@@ -34,6 +35,22 @@ def render_navbar(*, active: str = "home") -> None:
 
     This intentionally avoids exotic components so it works in Streamlit Cloud.
     """
+
+    # Guard: this navbar is sometimes called from both app.py and page scripts.
+    # If it renders twice in the same Streamlit run, widgets with fixed keys will collide.
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx  # type: ignore
+        _ctx = get_script_run_ctx()
+        _run_id = getattr(_ctx, "script_run_id", None) if _ctx else None
+    except Exception:
+        _run_id = None
+
+    if _run_id is not None:
+        if st.session_state.get("_navbar_rendered_run_id") == _run_id:
+            return
+        st.session_state["_navbar_rendered_run_id"] = _run_id
+
+
     u = current_user() or {}
     role = str((u.get("role") or "human")).lower()
     pages = _page_map(role)
@@ -44,7 +61,7 @@ def render_navbar(*, active: str = "home") -> None:
 
     with left:
         st.markdown('<div class="topbar-logo">🫧 <span>Crowdlike</span></div>', unsafe_allow_html=True)
-        st.caption("v1.5 • Cloud-ready demo")
+        st.caption(f"v{VERSION} • Cloud-ready demo")
 
     with mid:
         cols = st.columns(5, gap="small")

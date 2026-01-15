@@ -1,16 +1,16 @@
 import streamlit as st
-from crowdlike.ui import apply_ui, nav, soft_divider, callout
+from crowdlike.ui import apply_ui, soft_divider, callout
 
-from crowdlike.site import site_header, site_footer
+from crowdlike.site import site_footer, site_header, site_hero
+from crowdlike.version import VERSION
 
 st.set_page_config(page_title="Crowdlike — Docs", page_icon="📚", layout="wide")
 apply_ui()
 
 site_header(active="Docs")
-nav(active="Docs")
 
-st.markdown("## Docs")
-st.write("This is the official demo documentation for Crowdlike (local-first).")
+
+site_hero(kicker=f"Crowdlike v{VERSION}", title="Docs", subtitle="Quick-start guides, mental models, and workflows—optimized for judges and first-time users.")
 
 soft_divider()
 

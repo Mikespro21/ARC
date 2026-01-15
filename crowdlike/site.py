@@ -3,10 +3,11 @@ from __future__ import annotations
 import streamlit as st
 
 from crowdlike.ui import button_style
+from crowdlike.version import VERSION
 
 
 def site_header(active: str = "home") -> None:
-    """Website header (v1.5). Uses the unified navbar."""
+    """Website header (v{VERSION}). Uses the unified navbar."""
     from crowdlike.ui import nav
     nav(active=active)
 

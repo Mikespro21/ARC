@@ -1,15 +1,15 @@
 import streamlit as st
-from crowdlike.ui import apply_ui, nav, soft_divider
-from crowdlike.site import site_header, site_footer, site_section
+from crowdlike.ui import apply_ui, soft_divider
+from crowdlike.site import site_footer, site_header, site_hero, site_section
+from crowdlike.version import VERSION
 
 st.set_page_config(page_title="Crowdlike — Company", page_icon="🏢", layout="wide")
 apply_ui()
 
 site_header(active="Company")
-nav(active="Company")
 
-st.markdown("## Company")
-st.write("Crowdlike is a demo product concept focused on safe agentic commerce experiences.")
+
+site_hero(kicker=f"Crowdlike v{VERSION}", title="Company", subtitle="What Crowdlike is building and why: safe agentic commerce with human-aligned controls.")
 
 soft_divider()
 

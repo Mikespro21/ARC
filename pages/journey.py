@@ -18,7 +18,7 @@ ensure_user_schema(user)
 record_visit(user, "journey")
 
 # Sidebar
-render_sidebar(user, active="Journey")
+render_sidebar(user, active_page="Journey")
 
 
 def _set_step(n: int) -> None:

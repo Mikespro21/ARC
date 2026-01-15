@@ -37,13 +37,23 @@ def _readiness(user: Dict[str, Any]) -> Dict[str, bool]:
     }
 
 
-def render_sidebar(user: Dict[str, Any], *, active_page: str = "") -> None:
+def render_sidebar(
+    user: Dict[str, Any],
+    *,
+    active_page: str = "",
+    active: str | None = None,
+    **_: Any,
+) -> None:
     """Consistent sidebar across every page.
 
     - Always shows the active agent + quick switch.
     - Shows a tiny readiness checklist so judges can understand what to do next.
     - Keeps navigation consistent even if Streamlit's default pages menu is hidden.
     """
+
+    # Backwards-compat: older pages passed `active="..."`.
+    if (not active_page) and active:
+        active_page = str(active)
 
     with st.sidebar:
         st.markdown("### 🫧 Crowdlike")
@@ -150,4 +160,5 @@ def render_sidebar(user: Dict[str, Any], *, active_page: str = "") -> None:
         if st.button("Log out", key=f"sb_logout_{active_page}"):
             logout()
             st.rerun()
-        st.caption("Saved locally on this device.")
+        # Streamlit Cloud-friendly: this demo persists within the active session.
+        st.caption("Session-based demo (Streamlit Cloud-friendly).")

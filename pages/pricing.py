@@ -1,20 +1,20 @@
 import streamlit as st
 
-from crowdlike.ui import apply_ui, nav, soft_divider, callout, metric_card
-from crowdlike.site import site_header, site_footer
+from crowdlike.ui import apply_ui, soft_divider, callout, metric_card
+from crowdlike.site import site_footer, site_header, site_hero
 from crowdlike.pricing import quote_daily
 from crowdlike.auth import current_user
 from crowdlike.agents import get_agents
+from crowdlike.version import VERSION
 
 
 st.set_page_config(page_title="Crowdlike — Pricing", page_icon="💳", layout="wide")
 apply_ui()
 
 site_header(active="Pricing")
-nav(active="Pricing")
 
-st.markdown("## Pricing")
-st.write("A simple, transparent daily price based on number of agents and risk.")
+
+site_hero(kicker=f"Crowdlike v{VERSION}", title="Pricing", subtitle="Transparent demo tiers for autonomy, limits, approvals, and enterprise-style guardrails—no surprises, just control.")
 
 soft_divider()
 

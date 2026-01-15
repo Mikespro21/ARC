@@ -1,15 +1,15 @@
 import streamlit as st
-from crowdlike.ui import apply_ui, nav, soft_divider, callout
-from crowdlike.site import site_header, site_footer, site_section
+from crowdlike.ui import apply_ui, soft_divider, callout
+from crowdlike.site import site_footer, site_header, site_hero, site_section
+from crowdlike.version import VERSION
 
 st.set_page_config(page_title="Crowdlike — Product", page_icon="✨", layout="wide")
 apply_ui()
 
 site_header(active="Product")
-nav(active="Product")
 
-st.markdown("## Product")
-st.write("Crowdlike is designed to feel like a production consumer product while remaining demo-safe.")
+
+site_hero(kicker=f"Crowdlike v{VERSION}", title="Product", subtitle="A production-feel demo for agentic payments guided by crowd likability—designed for clarity, safety, and judged UX.")
 
 soft_divider()
 

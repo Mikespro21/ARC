@@ -62,7 +62,7 @@ def log_event(
     return evt
 
 
-def recent_events(user: Dict[str, Any], *, agent_id: Optional[str] = None, limit: int = 40) -> List[Dict[str, Any]]:
+def recent_events(user: Dict[str, Any], agent_id: Optional[str] = None, limit: int = 40) -> List[Dict[str, Any]]:
     ensure_events_schema(user)
     evts = user.get("events") if isinstance(user.get("events"), list) else []
     if agent_id is None:

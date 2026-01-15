@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 """
-Cloud-first storage backend (v1.5).
+Cloud-first storage backend (v1.6.0).
 
 Streamlit Community Cloud containers have an ephemeral filesystem. For a demo UX that feels
 stable *within a session* (and does not error in cloud), we store user data in Streamlit
@@ -16,6 +16,7 @@ swap these functions.
 
 import re
 from typing import Any, Dict, Optional
+from crowdlike.version import VERSION
 
 try:
     import streamlit as st  # type: ignore

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 import streamlit.components.v1 as components
+from crowdlike.version import VERSION
 
 # Enforced by background gradient stops:
 # Blue = 0-30% (30)
@@ -36,7 +37,24 @@ def apply_ui() -> None:
         --shadow: 0 14px 34px rgba(15, 23, 42, 0.10);
         --shadow-soft: 0 10px 22px rgba(15,23,42,0.06);
         --focus: 0 0 0 3px rgba(14,165,233,0.20);
-    }
+
+        --baseline: 8px;
+--gutter: 24px;
+--content-max: 1120px;
+        --grid-col-gap: 24px;
+        --grid-row-gap: 16px;
+--space-1: 4px;
+--space-2: 8px;
+--space-3: 12px;
+--space-4: 16px;
+--space-5: 24px;
+--space-6: 32px;
+--space-7: 40px;
+--space-8: 48px;
+--space-9: 56px;
+--space-10: 64px;
+--line: rgba(148,163,184,0.10);
+}
 
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(6px); }
@@ -64,10 +82,12 @@ def apply_ui() -> None:
     footer{ visibility:hidden; }
 
     .main .block-container{
-        padding-top: 0.85rem;
-        padding-bottom: 2.4rem;
-        max-width: 1080px;
-    }
+    padding-top: var(--space-5);
+    padding-bottom: var(--space-10);
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
+    max-width: var(--content-max);
+}
 
     section[data-testid="stSidebar"]{
         background: rgba(255,255,255,0.92);
@@ -76,8 +96,7 @@ def apply_ui() -> None:
 
     /* Typography tightening (subtle) */
     h1,h2,h3{ letter-spacing: -0.015em; }
-    h2{ margin-top: 0.2rem; }
-    .stCaption, .stMarkdown small{ color: var(--muted); }
+.stCaption, .stMarkdown small{ color: var(--muted); }
 
     /* Hero */
     .hero{
@@ -109,7 +128,7 @@ def apply_ui() -> None:
     /* Cards */
     .card{
         border-radius: var(--r-card);
-        padding: 0.95rem 1.05rem;
+        padding: var(--space-5);
         border: 1px solid rgba(148,163,184,0.16);
         background: rgba(255,255,255,0.88);
         box-shadow: var(--shadow-soft);
@@ -299,12 +318,7 @@ def apply_ui() -> None:
     section[data-testid="stSidebar"] div[data-testid="stButton"]{ margin: 0.34rem 0 !important; }
 
     /* More horizontal air inside columns/button rows */
-    div[data-testid="stHorizontalBlock"]{ gap: 1.0rem !important; }
-    div[data-testid="column"]{ padding-left: 0.35rem !important; padding-right: 0.35rem !important; }
-
-    /* Make widgets feel less cramped */
-    div[data-testid="stVerticalBlock"] > div{ padding-top: 0.10rem; padding-bottom: 0.10rem; }
-    /* Active nav button: disabled state looks selected */
+/* Active nav button: disabled state looks selected */
     .stButton > button:disabled{
       opacity: 1 !important;
       background: rgba(255,255,255,0.55) !important;
@@ -395,8 +409,8 @@ def apply_ui() -> None:
         max-width: 72ch;
     }
     .site-section{
-        padding: 18px 16px;
-        border-radius: 18px;
+        padding: var(--space-5) var(--space-5);
+        border-radius: var(--r-card);
         border: 1px solid rgba(148,163,184,0.18);
         background: rgba(255,255,255,0.82);
         box-shadow: var(--shadow-soft);
@@ -449,7 +463,7 @@ def apply_ui() -> None:
         border-radius: 14px !important;
     }
 
-/* v1.5: global spacing + web polish */
+/* v{VERSION}: global spacing + web polish */
 .block-container { padding-top: 1.25rem !important; padding-bottom: 3.5rem !important; max-width: 1220px; }
 div[data-testid="stVerticalBlock"] > div { gap: 0.95rem !important; }
 .stButton > button { padding: 0.72rem 0.95rem !important; border-radius: 16px !important; }
@@ -462,8 +476,58 @@ div[data-testid="stVerticalBlock"] > div { gap: 0.95rem !important; }
   .topbar { padding: 0.75rem 0.65rem; }
 }
 
+
+/* Baseline rhythm & alignment */
+h1{ margin: var(--space-6) 0 var(--space-3) 0; }
+h2{ margin: var(--space-6) 0 var(--space-3) 0; }
+h3{ margin: var(--space-4) 0 var(--space-2) 0; }
+p{ margin: 0 0 var(--space-3) 0; }
+
+.form-card{
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
+    padding: var(--space-5);
+    background: rgba(255,255,255,0.86);
+    box-shadow: var(--shadow-soft);
+}
+.button-stack .stButton{ margin-top: var(--space-3); }
+.button-row{ display:flex; gap: var(--space-4); align-items:center; flex-wrap:wrap; }
+
+/* Grid rails: consistent gaps & snap-to-columns feel */
+div[data-testid="stHorizontalBlock"]{ gap: var(--grid-col-gap) !important; align-items: flex-start; }
+div[data-testid="stHorizontalBlock"] > div{ min-width: 0; }
+div[data-testid="column"]{ padding-left: 0 !important; padding-right: 0 !important; }
+div[data-testid="stVerticalBlock"]{ gap: var(--grid-row-gap) !important; }
+div[data-testid="stVerticalBlock"] > div{ padding-top: 0 !important; padding-bottom: 0 !important; }
+
+form[data-testid="stForm"], div[data-testid="stForm"]{
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
+    padding: var(--space-5);
+    background: rgba(255,255,255,0.86);
+    box-shadow: var(--shadow-soft);
+}
+div[data-testid="stMetric"], [data-testid="stMetric"]{
+    border: 1px solid var(--border);
+    border-radius: var(--r-card);
+    padding: var(--space-4) !important;
+    background: rgba(255,255,255,0.86);
+}
+div[data-testid="stDataFrame"], div[data-testid="stTable"]{
+    border-radius: var(--r-card) !important;
+    overflow: hidden !important;
+}
+
+/* Tabs + expanders align to the same rails */
+div[data-testid="stTabs"]{ margin-top: var(--space-3) !important; }
+div[data-testid="stTabs"] [data-baseweb="tab-list"]{ gap: var(--space-3) !important; }
+div[data-testid="stExpander"]{ border-radius: var(--r-card) !important; overflow:hidden; }
+div[data-testid="stExpander"] details{ border-radius: var(--r-card) !important; }
+
 </style>
-    """
+    
+
+"""
     st.markdown(css, unsafe_allow_html=True)
 
 
@@ -759,7 +823,8 @@ def nav(active: str = "home") -> None:
             return
         st.session_state["_crowdlike_nav_last_run_id"] = run_id
 
-    render_navbar(active=a)
+    from crowdlike.navbar import render_navbar as _render_navbar
+    _render_navbar(active=a)
 
 
 def bg_ratio() -> dict:

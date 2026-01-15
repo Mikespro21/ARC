@@ -1,3 +1,9 @@
+## 1.5.9
+- Fix: recent_events signature mismatch on Dashboard (agent filter now keyword-safe).
+
+## v1.5.8
+- Grid-aligned layout pass: baseline spacing variables, consistent content width, column gaps, and card padding for stronger visual order.
+
 # Crowdlike v1.5 – Release Notes (UX/UI + Cloud)
 
 This release focuses on turning the demo into a Streamlit Cloud-friendly, website-grade experience with a guided onboarding flow, a unified top navigation, and consistent spacing/visual hierarchy.

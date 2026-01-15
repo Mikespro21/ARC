@@ -64,6 +64,60 @@ def logout() -> None:
     # Keep onboarding state (user may intentionally log out and re-enter as guest)
 
 
+def require_login(app_name: str = "Crowdlike") -> Dict[str, Any]:
+    """Return the current user, creating a session-scoped demo user if needed.
+
+    Many pages call this at import-time. It must never fail due to missing
+    local files or Streamlit Cloud's ephemeral filesystem.
+
+    Behavior:
+    - If a user exists in st.session_state, reuse it.
+    - Otherwise, default to a demo user (Cloud-friendly).
+    - For local dev, you can opt into the full login UI by setting
+      DEMO_MODE=false in secrets.toml (optional).
+    """
+
+    u = current_user()
+    if isinstance(u, dict):
+        return ensure_user_schema(u)
+
+    # Default to demo-only (safe for Streamlit Cloud). Avoid hard dependency on
+    # secrets.toml, since st.secrets access can raise if the file is absent.
+    demo_only = True
+    try:
+        demo_only = str(st.secrets.get("DEMO_MODE", "true")).lower() not in ("0", "false", "no")
+    except Exception:
+        demo_only = True
+
+    if not demo_only:
+        st.markdown(f"## {app_name}")
+        _login_inner(app_name)
+        st.stop()
+
+    # Create a demo user for this session.
+    uid = st.session_state.get("user_id")
+    if not isinstance(uid, str) or not uid.strip():
+        uid = "demo"
+
+    user = _new_user_state("Demo", "🧑‍🚀")
+    user.setdefault("onboarded", False)
+
+    st.session_state["user_id"] = safe_username(uid)
+    st.session_state["user"] = user
+
+    # Best-effort: add a lightweight welcome event.
+    try:
+        if not user.get("_welcomed"):
+            user["_welcomed"] = True
+            grant_xp(user, 120, "Welcome", "Session started")
+            add_notification(user, f"Welcome to {app_name}.", "success")
+            record_active_day(user)
+    except Exception:
+        pass
+
+    return user
+
+
 def _login_inner(app_name: str) -> None:
     tab_login, tab_create = st.tabs(["Log in", "Create profile"])
 
