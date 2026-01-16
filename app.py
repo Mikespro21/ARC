@@ -3,6 +3,43 @@ import streamlit.components.v1 as components
 
 # Streamlit wrapper that renders the provided UI "as-is" inside a single HTML component.
 # No Streamlit widgets are used so the layout/markup remains unchanged.
+import streamlit as st
+import streamlit.components.v1 as components
+
+CLARITY_PROJECT_ID = "v2ghymedzy"
+
+def inject_clarity(project_id: str) -> None:
+    # Inject Clarity into the TOP window (Streamlit page), not the component iframe.
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            try {{
+                // Avoid double-inject
+                if (window.parent && window.parent.__clarityLoaded) return;
+                if (window.parent) window.parent.__clarityLoaded = true;
+
+                (function(c,l,a,r,i,t,y){{
+                    c[a]=c[a]||function(){{(c[a].q=c[a].q||[]).push(arguments)}};
+                    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+                }})(window.parent, window.parent.document, "clarity", "script", "{project_id}");
+            }} catch (e) {{
+                // no-op: if parent injection is blocked for any reason
+                console.log("Clarity inject failed:", e);
+            }}
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+# Call once per browser session
+if "clarity_loaded" not in st.session_state:
+    inject_clarity(CLARITY_PROJECT_ID)
+    st.session_state.clarity_loaded = True
+
 
 st.set_page_config(page_title="Crowdlike", layout="wide")
 
