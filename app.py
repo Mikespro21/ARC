@@ -41,6 +41,7 @@ if "clarity_loaded" not in st.session_state:
     st.session_state.clarity_loaded = True
 
 
+
 st.set_page_config(page_title="Crowdlike", layout="wide")
 
 # Hide Streamlit chrome as much as possible.
