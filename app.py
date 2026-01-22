@@ -1284,7 +1284,46 @@ HTML = r"""<!doctype html>
   const u = new URL(window.location.href);
   u.searchParams.set("cl_page", pageId);
   window.location.href = u.toString();
-} catch (e) {
+}
+    /* --- CL_NAV_HARDENER_START ---
+       Convert onclick-based nav items into real links (<a href="?cl_page=...">)
+       so navigation works reliably across browsers/extensions and without inline handlers.
+    --- */
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const nodes = Array.from(document.querySelectorAll('[onclick*="routeToStreamlit"]'));
+        for (const el of nodes) {
+          const onclick = el.getAttribute('onclick') || '';
+          const mm = onclick.match(/routeToStreamlit\(\s*['"]([^'"]+)['"]\s*\)/);
+          if (!mm) continue;
+
+          const pageId = mm[1];
+          const href = `?cl_page=${encodeURIComponent(pageId)}`;
+
+          // If it's already an <a>, just add href + remove onclick.
+          if (el.tagName && el.tagName.toLowerCase() === 'a') {
+            if (!el.getAttribute('href')) el.setAttribute('href', href);
+            el.removeAttribute('onclick');
+            continue;
+          }
+
+          // Otherwise replace element with an <a> that preserves attributes/classes/content.
+          const a = document.createElement('a');
+          for (const attr of Array.from(el.attributes)) {
+            if (attr.name.toLowerCase() === 'onclick') continue;
+            a.setAttribute(attr.name, attr.value);
+          }
+          a.setAttribute('href', href);
+          a.innerHTML = el.innerHTML;
+
+          el.replaceWith(a);
+        }
+      } catch (e) {
+        console.warn('Nav hardener failed:', e);
+      }
+    });
+    /* --- CL_NAV_HARDENER_END --- */
+ catch (e) {
         try { window.parent.location.search = "?cl_page=" + encodeURIComponent(pageId); } catch {}
       }
     }
