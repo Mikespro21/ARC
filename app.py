@@ -64,7 +64,11 @@ if cl_page:
 
     if target:
         # Clear query params on switch to avoid getting "stuck" redirecting on refresh
-        st.switch_page(target, query_params={})
+        try:
+            st.switch_page(target, query_params={})
+        except TypeError:
+            # Older Streamlit versions do not support query_params kwarg.
+            st.switch_page(target)
         st.stop()
 # --- CL_PAGE_ROUTER_END ---
 
@@ -118,8 +122,8 @@ def inject_clarity(project_id: str) -> None:
             <script type="text/javascript">
             (function(){{
                 try {{
-                    # Avoid double inject
-                    if (window.parent and window.parent.__clarityLoaded) return;
+                    // Avoid double inject
+                    if (window.parent && window.parent.__clarityLoaded) return;
                     if (window.parent) window.parent.__clarityLoaded = true;
 
                     (function(c,l,a,r,i,t,y){{
@@ -198,6 +202,7 @@ HTML = r"""<!doctype html>
   <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "v2ghymedzy");
   </script>
@@ -312,3 +317,15 @@ HTML = r"""<!doctype html>
 
 </body>
 </html>""";
+
+# --- CL_RENDER_SHELL_START ---
+# If no page routing happened above, render the ARC-main HTML shell as the home experience.
+# This keeps the app from showing a blank screen when opened at / (no cl_page query param).
+try:
+    _html = HTML.replace("__CL_NAV_ITEMS__PLACEHOLDER__", CL_NAV_ITEMS_JSON)
+    # Large fixed height so the iframe is visible even on tall screens.
+    components.html(_html, height=1200, scrolling=True)
+except Exception as _e:
+    st.error("Crowdlike UI failed to render the HTML shell. See app.py (CL_RENDER_SHELL section).")
+    st.exception(_e)
+# --- CL_RENDER_SHELL_END ---
