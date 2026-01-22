@@ -113,7 +113,9 @@ _route_if_requested()
 def inject_clarity(project_id: str) -> None:
     # Best-effort injection for Microsoft Clarity.
     # 1) Inject into the Streamlit top window (outside the component iframe) using window.parent.
-    # 2) Also load in the component iframe via the HTML <head> (see below).
+    # 2) Also load in the component iframe via the HTML <head>
+    <!-- CL_NAV_ITEMS_JSON -->
+    <script>window.__CL_NAV_ITEMS = __CL_NAV_ITEMS__;</script> (see below).
     components.html(
         f"""
         <script type="text/javascript">
@@ -155,6 +157,36 @@ footer {visibility: hidden;}
 """,
     unsafe_allow_html=True,
 )
+# --- CL_NAV_ITEMS_START ---
+# Build sidebar nav from ALL Streamlit pages/ files so it never goes empty.
+import json as _json
+from pathlib import Path as _Path
+
+def _cl_build_nav_items():
+    pages_dir = _Path(__file__).parent / "pages"
+    items = []
+    if pages_dir.exists():
+        for fp in pages_dir.glob("*.py"):
+            name = fp.stem
+            if name.startswith("_"):
+                continue
+            label = name.replace("_", " ").title()
+            items.append({"id": name, "label": label})
+
+    # Prefer a stable, human-friendly order for common pages; append the rest.
+    preferred = [
+        "dashboard","agents","market","analytics","journey","coach","compare",
+        "quests","shop","social","chat","profile","pricing","safety","admin"
+    ]
+    order = {k:i for i,k in enumerate(preferred)}
+    items.sort(key=lambda x: (order.get(x["id"], 999), x["label"]))
+    return items
+
+CL_NAV_ITEMS = _cl_build_nav_items()
+CL_NAV_ITEMS_JSON = _json.dumps(CL_NAV_ITEMS)
+# --- CL_NAV_ITEMS_END ---
+
+
 
 HTML = r"""<!doctype html>
 <html lang="en">
@@ -1285,51 +1317,32 @@ HTML = r"""<!doctype html>
   u.searchParams.set("cl_page", pageId);
   window.location.href = u.toString();
 }
-            /* --- CL_NAV_HARDENER_START ---
-       Robust sidebar nav for all browsers:
-       1) If #nav is empty, inject a static fallback list of links (no dependency on other JS/libs).
-       2) Remove inline onclick routeToStreamlit(...) (less fragile across extensions).
-       3) Add click + keyboard handlers that navigate via ?cl_page=...
+                /* --- CL_NAV_HARDENER_START ---
+       Robust sidebar nav for ALL users:
+       - If #nav is empty, populate it from window.__CL_NAV_ITEMS (server-generated from pages/*.py).
+       - Keep DOM/CSS intact (no element replacement).
+       - Remove fragile inline onclick and make navigation work via real hrefs (?cl_page=...).
     --- */
     document.addEventListener('DOMContentLoaded', () => {
       try {
         const nav = document.getElementById('nav');
+        const items = (window.__CL_NAV_ITEMS || []);
 
-        // 1) Fallback nav injection if nothing rendered
-        if (nav && nav.children.length === 0) {
-          nav.innerHTML = `
-            <a href="?cl_page=dashboard" data-cl-page="dashboard"
-               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-              <span class="truncate">Dashboard</span>
-            </a>
-            <a href="?cl_page=agents" data-cl-page="agents"
-               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-              <span class="truncate">Agents</span>
-            </a>
-            <a href="?cl_page=market" data-cl-page="market"
-               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-              <span class="truncate">Market</span>
-            </a>
-            <a href="?cl_page=analytics" data-cl-page="analytics"
-               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-              <span class="truncate">Analytics</span>
-            </a>
-            <a href="?cl_page=leaderboards" data-cl-page="leaderboards"
-               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-              <span class="truncate">Leaderboards</span>
-            </a>
-            <a href="?cl_page=chat" data-cl-page="chat"
-               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-              <span class="truncate">Chat</span>
-            </a>
-            <a href="?cl_page=profile" data-cl-page="profile"
-               class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors">
-              <span class="truncate">Profile</span>
-            </a>
-          `;
+        // 1) Populate nav with ALL pages if empty
+        if (nav && items.length && nav.children.length === 0) {
+          const current = new URL(window.location.href).searchParams.get('cl_page') || '';
+          nav.innerHTML = items.map(it => {
+            const active = (it.id === current);
+            const base = "group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors";
+            const cls = active
+              ? base + " bg-gray-100 text-gray-900"
+              : base + " text-gray-700 hover:bg-gray-100 hover:text-gray-900";
+            const href = `?cl_page=${encodeURIComponent(it.id)}`;
+            return `<a href="${href}" data-cl-page="${it.id}" class="${cls}"><span class="truncate">${it.label}</span></a>`;
+          }).join("");
         }
 
-        // 2) Remove inline onclick routeToStreamlit(...) and add data-cl-page
+        // 2) Convert any old onclick="routeToStreamlit('x')" into data-cl-page + href (preserve DOM)
         const onclickNodes = Array.from(document.querySelectorAll('[onclick*="routeToStreamlit"]'));
         for (const el of onclickNodes) {
           const onclick = el.getAttribute('onclick') || '';
@@ -1339,36 +1352,37 @@ HTML = r"""<!doctype html>
           const pageId = mm[1];
           el.removeAttribute('onclick');
           el.setAttribute('data-cl-page', pageId);
+
+          // If it's an <a>, make it a real link
+          if (el.tagName && el.tagName.toLowerCase() === 'a' && !el.getAttribute('href')) {
+            el.setAttribute('href', `?cl_page=${encodeURIComponent(pageId)}`);
+          }
+
+          // Accessibility
           el.setAttribute('role', 'link');
           if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
         }
 
-        // 3) Attach robust navigation handlers to anything with data-cl-page
+        // 3) For any non-anchor elements with data-cl-page, add click/keyboard navigation
         const nodes = Array.from(document.querySelectorAll('[data-cl-page]'));
         for (const el of nodes) {
+          if (el.tagName && el.tagName.toLowerCase() === 'a') continue; // anchors already work
+
           const pageId = el.getAttribute('data-cl-page');
+          if (!pageId || el.__clNavBound) continue;
+          el.__clNavBound = true;
 
           const go = (ev) => {
             const u = new URL(window.location.href);
             u.searchParams.set('cl_page', pageId);
-
-            if (ev && (ev.ctrlKey || ev.metaKey)) {
-              window.open(u.toString(), '_blank');
-            } else {
-              window.location.href = u.toString();
-            }
-
+            window.location.href = u.toString();
             if (ev) { ev.preventDefault(); ev.stopPropagation(); }
           };
 
-          // Only bind if not already bound
-          if (!el.__clNavBound) {
-            el.__clNavBound = true;
-            el.addEventListener('click', go);
-            el.addEventListener('keydown', (ev) => {
-              if (ev.key === 'Enter' || ev.key === ' ') go(ev);
-            });
-          }
+          el.addEventListener('click', go);
+          el.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') go(ev);
+          });
         }
       } catch (e) {
         console.warn('Nav hardener failed:', e);
@@ -1665,5 +1679,7 @@ HTML = r"""<!doctype html>
   </script>
 </body>
 </html>"""
+HTML = HTML.replace("__CL_NAV_ITEMS__", CL_NAV_ITEMS_JSON)
+
 
 st.html(HTML, unsafe_allow_javascript=True, width="stretch")
