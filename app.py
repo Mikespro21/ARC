@@ -127,7 +127,6 @@ def inject_clarity(project_id: str) -> None:
 
                 (function(c,l,a,r,i,t,y){{
                     c[a]=c[a]||function(){{(c[a].q=c[a].q||[]).push(arguments)}};
-                    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
                     y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
                 }})(window.parent, window.parent.document, "clarity", "script", "{project_id}");
             }} catch (e) {{
@@ -199,7 +198,6 @@ HTML = r"""<!doctype html>
   <script type="text/javascript">
     (function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
         y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
     })(window, document, "clarity", "script", "v2ghymedzy");
   </script>
@@ -252,7 +250,26 @@ HTML = r"""<!doctype html>
 
         <!-- Navigation Links -->
         <nav id="nav" class="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-          <!-- Buttons injected by JS to preserve one source of truth for pages -->
+          <!-- CL_NAV_AUTOGEN_START -->
+          <a href="?cl_page=dashboard" data-cl-page="dashboard" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Dashboard</span></a>
+          <a href="?cl_page=agents" data-cl-page="agents" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Agents</span></a>
+          <a href="?cl_page=market" data-cl-page="market" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Market</span></a>
+          <a href="?cl_page=analytics" data-cl-page="analytics" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Analytics</span></a>
+          <a href="?cl_page=journey" data-cl-page="journey" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Journey</span></a>
+          <a href="?cl_page=coach" data-cl-page="coach" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Coach</span></a>
+          <a href="?cl_page=compare" data-cl-page="compare" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Compare</span></a>
+          <a href="?cl_page=quests" data-cl-page="quests" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Quests</span></a>
+          <a href="?cl_page=shop" data-cl-page="shop" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Shop</span></a>
+          <a href="?cl_page=social" data-cl-page="social" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Social</span></a>
+          <a href="?cl_page=chat" data-cl-page="chat" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Chat</span></a>
+          <a href="?cl_page=profile" data-cl-page="profile" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Profile</span></a>
+          <a href="?cl_page=pricing" data-cl-page="pricing" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Pricing</span></a>
+          <a href="?cl_page=safety" data-cl-page="safety" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Safety</span></a>
+          <a href="?cl_page=admin" data-cl-page="admin" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Admin</span></a>
+          <a href="?cl_page=company" data-cl-page="company" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Company</span></a>
+          <a href="?cl_page=docs" data-cl-page="docs" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Docs</span></a>
+          <a href="?cl_page=product" data-cl-page="product" class="group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"><span class="truncate">Product</span></a>
+          <!-- CL_NAV_AUTOGEN_END -->
         </nav>
 
         <!-- Footer -->
