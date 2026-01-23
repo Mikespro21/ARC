@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Streamlit
+.streamlit/
+
+# Node
+node_modules/
+dist/
+
+# Secrets
+.env
+.env.*
+
+# Build artifacts
+out/
+cache/
