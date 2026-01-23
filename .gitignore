@@ -1,12 +1,5 @@
-# Python
+.venv/
 __pycache__/
 *.pyc
-.venv/
-venv/
-
-# Streamlit
-.streamlit/
-*.log
-
-# Secrets
 .env
+.streamlit/
